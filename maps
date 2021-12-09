@@ -1,0 +1,91 @@
+#!/bin/sh
+MAPS_MAIN_CLASS=maps.Main
+verbose=false
+#verbose=true
+#JAVA_OPT="-d64 -server -XX:+PrintCompilation"
+JAVA_OPT=
+
+PRG=$0
+progname=`basename "$0"`
+
+#echo "PRG: " $PRG
+#echo "progname: " $progname
+
+if [ -z "$MAPS_HOME" ]; then
+
+    # for symbolic link
+    while [ -h "$PRG" ] ; do
+    ls=`ls -ld "$PRG"`
+    link=`expr "$ls" : '.*-> \(.*\)$'`
+    if expr "$link" : '.*/.*' > /dev/null; then
+        PRG="$link"
+    else
+        PRG="`dirname $PRG`/$link"
+    fi
+    done
+
+    MAPS_HOME_0=`dirname "$PRG"`
+    MAPS_HOME_0=`dirname "$MAPS_HOME_0"`
+else
+    if [ x"$PRP" != x"$progname" ]; then
+    MAPS_HOME_0=`dirname "$PRG"`
+    MAPS_HOME_0=`dirname "$MAPS_HOME_0"`
+    fi
+fi
+#echo "MAPS_HOME_0: " $MAPS_HOME_0
+
+if [ -n x"${MAPS_HOME_0}" ]; then
+    if [ x"${MAPS_HOME_0}" = "x." ]; then
+    MAPS_HOME=".."
+    fi
+    if [ -d "${MAPS_HOME_0}/lib" ]; then
+    MAPS_HOME="${MAPS_HOME_0}"
+    fi
+fi
+
+#echo "MAPS_HOME: " $MAPS_HOME
+
+if [ -z "$JAVA_HOME" ]; then
+    JAVA_CMD='java'
+else
+    JAVA_CMD="$JAVA_HOME/bin/java"
+fi
+
+if [ -z "$SCALA_HOME" ]; then
+    SCALA_CMD='scala'
+    SCALA_LIB=
+else
+    SCALA_CMD="$SCALA_HOME/bin/scala"
+#    SCALA_LIB="$SCALA_HOME/lib/scala-library.jar"
+    JLINE_LIB="jline-2.14.5.jar"
+    SCALA_LIBS="$SCALA_HOME/lib/scala-library.jar:$SCALA_HOME/lib/$JLINE_LIB"
+fi
+
+LAUNCHER_JAR="$MAPS_HOME/lib/maps.jar"
+MAPS_JAR="$MAPS_HOME/lib/maps.jar"
+JLINE_LIB="jline.jar"
+SCALA_LIBS="$MAPS_HOME/lib/scala-library.jar:$MAPS_HOME/lib/$JLINE_LIB"
+
+if $verbose; then
+    echo "PRG:          " $PRG
+    echo "progname:     " $progname
+    echo "MAPS_HOME_0:  " $MAPS_HOME_0
+    echo "MAPS_HOME:    " $MAPS_HOME
+    echo "JAVA_CMD:     " $JAVA_CMD
+    echo "LAUNCHER_JAR: " $LAUNCHER_JAR
+    echo "MAPS_JAR:     " $MAPS_JAR
+    echo "SCALA_LIB:    " $SCALA_LIB
+    echo "SCALA_LIBS:   " $SCALA_LIBS
+    echo
+fi
+
+#COMMAND="$JAVA_CMD -Dfile.encoding=UTF-8 -Dmaps.home=$MAPS_HOME -Dmaps.java.command=$JAVA_CMD -jar $LAUNCHER_JAR $@"
+#COMMAND="$JAVA_CMD $JAVA_OPT -Dfile.encoding=UTF-8 -Dmaps.home=$MAPS_HOME -Dmaps.java.command=$JAVA_CMD -cp $SCALA_LIB:$MAPS_JAR $MAPS_MAIN_CLASS $@"
+COMMAND="$JAVA_CMD $JAVA_OPT -Dfile.encoding=UTF-8 -Dmaps.home=$MAPS_HOME -Dmaps.java.command=$JAVA_CMD -cp $SCALA_LIBS:$MAPS_JAR $MAPS_MAIN_CLASS $@"
+
+if $verbose; then
+    echo "COMMAND: " $COMMAND
+fi
+exec $COMMAND
+
+# EOF

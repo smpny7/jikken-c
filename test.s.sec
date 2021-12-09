@@ -1,0 +1,261 @@
+#
+# This script is produced by:
+#   MAPS version 2.0a (build 20E05) (2020-05-22)
+#   Designed by Nobuya WATANABE, Okayama University
+#
+#   Tue Dec 07 02:23:51 UTC 2021
+#
+
+# 	.text   
+# init:
+#         la      $28, INITIAL_GP
+# 00000000 - 3c011000
+memset /memunit/imem/mcell0 X0000 X3c # lui     $1, hi(INITIAL_GP)
+memset /memunit/imem/mcell1 X0000 X01
+memset /memunit/imem/mcell2 X0000 X10
+memset /memunit/imem/mcell3 X0000 X00
+# 00000004 - 343c8000
+memset /memunit/imem/mcell0 X0001 X34 # ori     $28, $1, lo(INITIAL_GP)
+memset /memunit/imem/mcell1 X0001 X3c
+memset /memunit/imem/mcell2 X0001 X80
+memset /memunit/imem/mcell3 X0001 X00
+#         la      $29, INITIAL_SP
+# 00000008 - 3c017fff
+memset /memunit/imem/mcell0 X0002 X3c # lui     $1, hi(INITIAL_SP)
+memset /memunit/imem/mcell1 X0002 X01
+memset /memunit/imem/mcell2 X0002 X7f
+memset /memunit/imem/mcell3 X0002 Xff
+# 0000000c - 343dfffc
+memset /memunit/imem/mcell0 X0003 X34 # ori     $29, $1, lo(INITIAL_SP)
+memset /memunit/imem/mcell1 X0003 X3d
+memset /memunit/imem/mcell2 X0003 Xff
+memset /memunit/imem/mcell3 X0003 Xfc
+# 00000010 - 0c000400
+memset /memunit/imem/mcell0 X0004 X0c # jal     main
+memset /memunit/imem/mcell1 X0004 X00
+memset /memunit/imem/mcell2 X0004 X04
+memset /memunit/imem/mcell3 X0004 X00
+# 00000014 - 00000000
+memset /memunit/imem/mcell0 X0005 X00 # nop     
+memset /memunit/imem/mcell1 X0005 X00
+memset /memunit/imem/mcell2 X0005 X00
+memset /memunit/imem/mcell3 X0005 X00
+#         li      $2, stop_service
+# 00000018 - 3c010000
+memset /memunit/imem/mcell0 X0006 X3c # lui     $1, hi(stop_service)
+memset /memunit/imem/mcell1 X0006 X01
+memset /memunit/imem/mcell2 X0006 X00
+memset /memunit/imem/mcell3 X0006 X00
+# 0000001c - 34220063
+memset /memunit/imem/mcell0 X0007 X34 # ori     $2, $1, lo(stop_service)
+memset /memunit/imem/mcell1 X0007 X22
+memset /memunit/imem/mcell2 X0007 X00
+memset /memunit/imem/mcell3 X0007 X63
+# 00000020 - 0000000c
+memset /memunit/imem/mcell0 X0008 X00 # syscall 
+memset /memunit/imem/mcell1 X0008 X00
+memset /memunit/imem/mcell2 X0008 X00
+memset /memunit/imem/mcell3 X0008 X0c
+# 00000024 - 00000000
+memset /memunit/imem/mcell0 X0009 X00 # nop     
+memset /memunit/imem/mcell1 X0009 X00
+memset /memunit/imem/mcell2 X0009 X00
+memset /memunit/imem/mcell3 X0009 X00
+# stop:
+# 00000028 - 0800000a
+memset /memunit/imem/mcell0 X000a X08 # j       stop
+memset /memunit/imem/mcell1 X000a X00
+memset /memunit/imem/mcell2 X000a X00
+memset /memunit/imem/mcell3 X000a X0a
+# 0000002c - 00000000
+memset /memunit/imem/mcell0 X000b X00 # nop     
+memset /memunit/imem/mcell1 X000b X00
+memset /memunit/imem/mcell2 X000b X00
+memset /memunit/imem/mcell3 X000b X00
+# 	.text   4096
+# main:
+#         la      $9, N
+# 00001000 - 3c011000
+memset /memunit/imem/mcell0 X0400 X3c # lui     $1, hi(N)
+memset /memunit/imem/mcell1 X0400 X01
+memset /memunit/imem/mcell2 X0400 X10
+memset /memunit/imem/mcell3 X0400 X00
+# 00001004 - 34294008
+memset /memunit/imem/mcell0 X0401 X34 # ori     $9, $1, lo(N)
+memset /memunit/imem/mcell1 X0401 X29
+memset /memunit/imem/mcell2 X0401 X40
+memset /memunit/imem/mcell3 X0401 X08
+# 00001008 - 8d2a0000
+memset /memunit/imem/mcell0 X0402 X8d # lw      $10, 0($9)
+memset /memunit/imem/mcell1 X0402 X2a
+memset /memunit/imem/mcell2 X0402 X00
+memset /memunit/imem/mcell3 X0402 X00
+# 0000100c - 340b0000
+memset /memunit/imem/mcell0 X0403 X34 # ori     $11, $0, 0
+memset /memunit/imem/mcell1 X0403 X0b
+memset /memunit/imem/mcell2 X0403 X00
+memset /memunit/imem/mcell3 X0403 X00
+#         la      $9, BASE
+# 00001010 - 3c011000
+memset /memunit/imem/mcell0 X0404 X3c # lui     $1, hi(BASE)
+memset /memunit/imem/mcell1 X0404 X01
+memset /memunit/imem/mcell2 X0404 X10
+memset /memunit/imem/mcell3 X0404 X00
+# 00001014 - 34294004
+memset /memunit/imem/mcell0 X0405 X34 # ori     $9, $1, lo(BASE)
+memset /memunit/imem/mcell1 X0405 X29
+memset /memunit/imem/mcell2 X0405 X40
+memset /memunit/imem/mcell3 X0405 X04
+# 00001018 - 8d2c0000
+memset /memunit/imem/mcell0 X0406 X8d # lw      $12, 0($9)
+memset /memunit/imem/mcell1 X0406 X2c
+memset /memunit/imem/mcell2 X0406 X00
+memset /memunit/imem/mcell3 X0406 X00
+# 0000101c - 00000000
+memset /memunit/imem/mcell0 X0407 X00 # nop     
+memset /memunit/imem/mcell1 X0407 X00
+memset /memunit/imem/mcell2 X0407 X00
+memset /memunit/imem/mcell3 X0407 X00
+# _LOOP:
+# 00001020 - 11400007
+memset /memunit/imem/mcell0 X0408 X11 # beq     $10, $0, _END
+memset /memunit/imem/mcell1 X0408 X40
+memset /memunit/imem/mcell2 X0408 X00
+memset /memunit/imem/mcell3 X0408 X07
+# 00001024 - 00000000
+memset /memunit/imem/mcell0 X0409 X00 # nop     
+memset /memunit/imem/mcell1 X0409 X00
+memset /memunit/imem/mcell2 X0409 X00
+memset /memunit/imem/mcell3 X0409 X00
+# 00001028 - 8d8d0000
+memset /memunit/imem/mcell0 X040a X8d # lw      $13, 0($12)
+memset /memunit/imem/mcell1 X040a X8d
+memset /memunit/imem/mcell2 X040a X00
+memset /memunit/imem/mcell3 X040a X00
+# 0000102c - 016d5820
+memset /memunit/imem/mcell0 X040b X01 # add     $11, $11, $13
+memset /memunit/imem/mcell1 X040b X6d
+memset /memunit/imem/mcell2 X040b X58
+memset /memunit/imem/mcell3 X040b X20
+# 00001030 - 218c0004
+memset /memunit/imem/mcell0 X040c X21 # addi    $12, $12, 4
+memset /memunit/imem/mcell1 X040c X8c
+memset /memunit/imem/mcell2 X040c X00
+memset /memunit/imem/mcell3 X040c X04
+# 00001034 - 214affff
+memset /memunit/imem/mcell0 X040d X21 # addi    $10, $10, -1
+memset /memunit/imem/mcell1 X040d X4a
+memset /memunit/imem/mcell2 X040d Xff
+memset /memunit/imem/mcell3 X040d Xff
+# 00001038 - 08000408
+memset /memunit/imem/mcell0 X040e X08 # j       _LOOP
+memset /memunit/imem/mcell1 X040e X00
+memset /memunit/imem/mcell2 X040e X04
+memset /memunit/imem/mcell3 X040e X08
+# 0000103c - 00000000
+memset /memunit/imem/mcell0 X040f X00 # nop     
+memset /memunit/imem/mcell1 X040f X00
+memset /memunit/imem/mcell2 X040f X00
+memset /memunit/imem/mcell3 X040f X00
+# _END:
+#         la      $16, RESULT
+# 00001040 - 3c011000
+memset /memunit/imem/mcell0 X0410 X3c # lui     $1, hi(RESULT)
+memset /memunit/imem/mcell1 X0410 X01
+memset /memunit/imem/mcell2 X0410 X10
+memset /memunit/imem/mcell3 X0410 X00
+# 00001044 - 34304000
+memset /memunit/imem/mcell0 X0411 X34 # ori     $16, $1, lo(RESULT)
+memset /memunit/imem/mcell1 X0411 X30
+memset /memunit/imem/mcell2 X0411 X40
+memset /memunit/imem/mcell3 X0411 X00
+# 00001048 - ae0b0000
+memset /memunit/imem/mcell0 X0412 Xae # sw      $11, 0($16)
+memset /memunit/imem/mcell1 X0412 X0b
+memset /memunit/imem/mcell2 X0412 X00
+memset /memunit/imem/mcell3 X0412 X00
+# 0000104c - 03e00008
+memset /memunit/imem/mcell0 X0413 X03 # jr      $31
+memset /memunit/imem/mcell1 X0413 Xe0
+memset /memunit/imem/mcell2 X0413 X00
+memset /memunit/imem/mcell3 X0413 X08
+# 00001050 - 00000000
+memset /memunit/imem/mcell0 X0414 X00 # nop     
+memset /memunit/imem/mcell1 X0414 X00
+memset /memunit/imem/mcell2 X0414 X00
+memset /memunit/imem/mcell3 X0414 X00
+# 	.data   268451840
+# RESULT:
+# 	.word   4294967295
+# 10004000 - ffffffff (-1)
+memset /memunit/dmem/mcell0 X1000 Xff
+memset /memunit/dmem/mcell1 X1000 Xff
+memset /memunit/dmem/mcell2 X1000 Xff
+memset /memunit/dmem/mcell3 X1000 Xff
+# BASE:
+# 	.word   268452096
+# 10004004 - 10004100 (268452096)
+memset /memunit/dmem/mcell0 X1001 X10
+memset /memunit/dmem/mcell1 X1001 X00
+memset /memunit/dmem/mcell2 X1001 X41
+memset /memunit/dmem/mcell3 X1001 X00
+# N:
+# 	.word   10
+# 10004008 - 0000000a (10)
+memset /memunit/dmem/mcell0 X1002 X00
+memset /memunit/dmem/mcell1 X1002 X00
+memset /memunit/dmem/mcell2 X1002 X00
+memset /memunit/dmem/mcell3 X1002 X0a
+# 	.data   268452096
+# 	.word   1, 2, 3, 4, 5, 6, 7, 8, 9, 10
+# 10004100 - 00000001 (1)
+memset /memunit/dmem/mcell0 X1040 X00
+memset /memunit/dmem/mcell1 X1040 X00
+memset /memunit/dmem/mcell2 X1040 X00
+memset /memunit/dmem/mcell3 X1040 X01
+# 10004104 - 00000002 (2)
+memset /memunit/dmem/mcell0 X1041 X00
+memset /memunit/dmem/mcell1 X1041 X00
+memset /memunit/dmem/mcell2 X1041 X00
+memset /memunit/dmem/mcell3 X1041 X02
+# 10004108 - 00000003 (3)
+memset /memunit/dmem/mcell0 X1042 X00
+memset /memunit/dmem/mcell1 X1042 X00
+memset /memunit/dmem/mcell2 X1042 X00
+memset /memunit/dmem/mcell3 X1042 X03
+# 1000410c - 00000004 (4)
+memset /memunit/dmem/mcell0 X1043 X00
+memset /memunit/dmem/mcell1 X1043 X00
+memset /memunit/dmem/mcell2 X1043 X00
+memset /memunit/dmem/mcell3 X1043 X04
+# 10004110 - 00000005 (5)
+memset /memunit/dmem/mcell0 X1044 X00
+memset /memunit/dmem/mcell1 X1044 X00
+memset /memunit/dmem/mcell2 X1044 X00
+memset /memunit/dmem/mcell3 X1044 X05
+# 10004114 - 00000006 (6)
+memset /memunit/dmem/mcell0 X1045 X00
+memset /memunit/dmem/mcell1 X1045 X00
+memset /memunit/dmem/mcell2 X1045 X00
+memset /memunit/dmem/mcell3 X1045 X06
+# 10004118 - 00000007 (7)
+memset /memunit/dmem/mcell0 X1046 X00
+memset /memunit/dmem/mcell1 X1046 X00
+memset /memunit/dmem/mcell2 X1046 X00
+memset /memunit/dmem/mcell3 X1046 X07
+# 1000411c - 00000008 (8)
+memset /memunit/dmem/mcell0 X1047 X00
+memset /memunit/dmem/mcell1 X1047 X00
+memset /memunit/dmem/mcell2 X1047 X00
+memset /memunit/dmem/mcell3 X1047 X08
+# 10004120 - 00000009 (9)
+memset /memunit/dmem/mcell0 X1048 X00
+memset /memunit/dmem/mcell1 X1048 X00
+memset /memunit/dmem/mcell2 X1048 X00
+memset /memunit/dmem/mcell3 X1048 X09
+# 10004124 - 0000000a (10)
+memset /memunit/dmem/mcell0 X1049 X00
+memset /memunit/dmem/mcell1 X1049 X00
+memset /memunit/dmem/mcell2 X1049 X00
+memset /memunit/dmem/mcell3 X1049 X0a
+
