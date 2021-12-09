@@ -7,7 +7,7 @@
 
 #define BUF_SIZE 9216
 
-int main(void)
+int main(int argc, char **argv)
 {
     int sock;
     struct addrinfo hints, *result;
@@ -102,7 +102,15 @@ int main(void)
     * ================================
     */
 
-    char message[] = "bello!\r\n";
+    char message[BUF_SIZE] = {0};
+
+    for (int i = 1; i < argc; i++)
+    {
+        if (i != 1)
+            strcat(message, " ");
+        strcat(message, argv[i]);
+    }
+
     if (send(sock, (const void *)message, strlen(message), 0) == -1)
     {
         printf("[Error] Send Error Occurred.\n");

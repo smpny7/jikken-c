@@ -1,14 +1,14 @@
 server:
-	gcc -Wall meibo_server.c -o meibo_server
-	./meibo_server
-	rm -rf *~ meibo_server
+	gcc -Wall server.c -o server
+	./server
+	rm -rf *~ server
 
 client:
 	gcc -Wall client.c -o client
-	./client
+	./client %C hello
 	rm -rf *~ client
 
 clean:
-	rm -rf *~ meibo_server client
+	rm -rf *~ server client
 
 # End of file (Makefile)

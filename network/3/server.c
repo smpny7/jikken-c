@@ -78,6 +78,16 @@ int main(void)
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
     sa.sin_port = htons((uint16_t)80);
 
+    int yes = 1;
+
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes)) < 0)
+    {
+        perror("[Error] SetSockOpt Error Occurred.\n");
+        close(sock);
+        freeaddrinfo(result);
+        return -1;
+    }
+
     if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) == -1)
     {
         printf("[Error] Bind Error Occurred.\n");
@@ -146,7 +156,7 @@ int main(void)
     */
 
     int i = 0;
-    while (buf[i] != '\r')
+    while (buf[i])
     {
         buf[i] = toupper(buf[i]);
         i++;
