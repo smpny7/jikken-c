@@ -16,32 +16,33 @@ void exec_command(char cmd, char *param)
     switch (cmd)
     {
     case 'Q':
+    case 'D':
         is_loop = false;
         break;
-    // case 'C':
-    //     return cmd_check(cmd);
-    //     break;
-    // case 'P':
-    //     return cmd_print(cmd, param);
-    //     break;
-    // case 'R':
-    //     cmd_read(cmd, param);
-    //     break;
-    // case 'W':
-    //     cmd_write(cmd, param);
-    //     break;
-    // case 'F':
-    //     return cmd_find(cmd, param);
-    //     break;
-    // case 'S':
-    //     return cmd_sort(cmd, param);
-    //     break;
-    // case 'M':
-    //     cmd_match(cmd, param);
-    //     break;
-    // default:
-    //     printf(">> Unregistered Command is Entered.\n");
-    //     break;
+        // case 'C':
+        //     return cmd_check(cmd);
+        //     break;
+        // case 'P':
+        //     return cmd_print(cmd, param);
+        //     break;
+        // case 'R':
+        //     cmd_read(cmd, param);
+        //     break;
+        // case 'W':
+        //     cmd_write(cmd, param);
+        //     break;
+        // case 'F':
+        //     return cmd_find(cmd, param);
+        //     break;
+        // case 'S':
+        //     return cmd_sort(cmd, param);
+        //     break;
+        // case 'M':
+        //     cmd_match(cmd, param);
+        //     break;
+        // default:
+        //     printf(">> Unregistered Command is Entered.\n");
+        //     break;
     }
 }
 
