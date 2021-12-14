@@ -4,6 +4,7 @@
         "types.h": "c",
         "fcntl.h": "c",
         "socket.h": "c",
-        "string.h": "c"
+        "string.h": "c",
+        "stdio.h": "c"
     }
 }

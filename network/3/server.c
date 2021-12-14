@@ -12,176 +12,137 @@
 int main(void)
 {
     int sock;
-    struct addrinfo hints, *result;
-    struct in_addr addr;
     struct sockaddr_in sa;
 
-    /*
-    * ================================
-    *  1. ソケットを作成する
-    * ================================
-    */
-
-    /*
-    * ----------------------
-    *  1.1 サーバ情報
-    * ----------------------
-    */
-
-    char *hostname = "localhost";
-    char *port = "80";
-
-    /*
-    * ----------------------
-    *  1.2 IPアドレスの取得
-    * ----------------------
-    */
-
-    bzero((char *)&hints, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((getaddrinfo(hostname, port, &hints, &result)) != 0)
+    while (1)
     {
-        printf("[Error] GetAddrInfo Error Occurred.\n");
-        return 1;
-    }
+        /*
+        * ================================
+        *  1. ソケットを作成する
+        * ================================
+        */
 
-    addr.s_addr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr;
+        sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+        if (sock == -1)
+        {
+            printf("[Error] Socket Error Occurred.\n");
+            return -1;
+        }
 
-    printf("> IP Address: %s\n", inet_ntoa(addr));
+        printf("> Socket Created Successfully.\n");
 
-    /*
-    * ----------------------
-    *  1.3 IPアドレスの取得
-    * ----------------------
-    */
+        /*
+        * ================================
+        *  2. ソケットに名前を付ける
+        * ================================
+        */
 
-    sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-    if (sock == -1)
-    {
-        printf("[Error] Socket Error Occurred.\n");
-        freeaddrinfo(result);
-        return -1;
-    }
+        memset((char *)&sa, 0, sizeof(sa));
+        sa.sin_family = AF_INET;
+        sa.sin_addr.s_addr = htonl(INADDR_ANY);
+        sa.sin_port = htons((uint16_t)80);
 
-    printf("> Socket Created Successfully.\n");
+        int yes = 1;
 
-    /*
-    * ================================
-    *  2. ソケットに名前を付ける
-    * ================================
-    */
+        if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes)) < 0)
+        {
+            perror("[Error] SetSockOpt Error Occurred.\n");
+            close(sock);
+            return -1;
+        }
 
-    memset((char *)&sa, 0, sizeof(sa));
-    sa.sin_family = AF_INET;
-    sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons((uint16_t)80);
+        if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) == -1)
+        {
+            printf("[Error] Bind Error Occurred.\n");
+            close(sock);
+            return -1;
+        }
 
-    int yes = 1;
+        printf("> Socket Bound Successfully.\n");
 
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes)) < 0)
-    {
-        perror("[Error] SetSockOpt Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+        /*
+        * ================================
+        *  3. 接続要求を待つ
+        * ================================
+        */
 
-    if (bind(sock, (struct sockaddr *)&sa, sizeof(sa)) == -1)
-    {
-        printf("[Error] Bind Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+        if (listen(sock, 5) == -1)
+        {
+            printf("[Error] Listen Error Occurred.\n");
+            close(sock);
+            return -1;
+        }
 
-    printf("> Socket Bound Successfully.\n");
+        printf("> Listen Started.\n");
 
-    /*
-    * ================================
-    *  3. 接続要求を待つ
-    * ================================
-    */
+        /*
+        * ================================
+        *  4. 接続要求を受け付ける
+        * ================================
+        */
 
-    if (listen(sock, 5) == -1)
-    {
-        printf("[Error] Listen Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+        socklen_t len = sizeof(struct sockaddr);
+        int new_sock = accept(sock, (struct sockaddr *)&sa, &len);
 
-    printf("> Listen Started.\n");
+        if (new_sock == -1)
+        {
+            printf("[Error] Accept Error Occurred.\n");
+            close(sock);
+            return -1;
+        }
 
-    /*
-    * ================================
-    *  4. 接続要求を受け付ける
-    * ================================
-    */
+        while (1)
+        {
+            /*
+            * ================================
+            *  5. メッセージを受信する
+            * ================================
+            */
 
-    socklen_t len = sizeof(struct sockaddr);
-    int new_sock = accept(sock, (struct sockaddr *)&sa, &len);
+            char buf[BUF_SIZE] = {0};
+            int recv_size = recv(new_sock, (void *)buf, sizeof(buf), 0);
+            if (recv_size == -1)
+            {
+                printf("[Error] Receive Error Occurred.\n");
+                close(sock);
+                return -1;
+            }
 
-    if (new_sock == -1)
-    {
-        printf("[Error] Accept Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+            printf("> Message Received Successfully.（%d bytes）\n", recv_size);
 
-    /*
-    * ================================
-    *  5. メッセージを受信する
-    * ================================
-    */
+            /*
+            * ================================
+            *  @. サーバ内部処理
+            * ================================
+            */
 
-    char buf[BUF_SIZE] = {0};
-    int recv_size = recv(new_sock, (void *)buf, sizeof(buf), 0);
-    if (recv_size == -1)
-    {
-        printf("[Error] Receive Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+            int i = 0;
+            while (buf[i])
+            {
+                buf[i] = toupper(buf[i]);
+                i++;
+            }
 
-    printf("> Message Received Successfully.（%d bytes）\n", recv_size);
+            /*
+            * ================================
+            *  6. メッセージを送信する
+            * ================================
+            */
 
-    /*
-    * ================================
-    *  @. サーバ内部処理
-    * ================================
-    */
+            if (send(new_sock, (const void *)buf, strlen(buf), 0) == -1)
+            {
+                printf("[Error] Send Error Occurred.\n");
+                close(sock);
+                close(new_sock);
+                return -1;
+            }
 
-    int i = 0;
-    while (buf[i])
-    {
-        buf[i] = toupper(buf[i]);
-        i++;
-    }
+            printf("> Message Sent Successfully.\n");
+        }
 
-    /*
-    * ================================
-    *  6. メッセージを送信する
-    * ================================
-    */
-
-    if (send(new_sock, (const void *)buf, strlen(buf), 0) == -1)
-    {
-        printf("[Error] Send Error Occurred.\n");
         close(sock);
         close(new_sock);
-        freeaddrinfo(result);
-        return -1;
     }
-
-    printf("> Message Sent Successfully.\n");
-
-    close(sock);
-    close(new_sock);
-    freeaddrinfo(result);
 
     return 0;
 }

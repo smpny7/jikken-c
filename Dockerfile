@@ -20,7 +20,6 @@ RUN apt-get update && apt-get install -y \
     telnet \
     unzip \
     man \
-    manpages-ja \
     zip \
     default-jre  \
     default-jdk \
@@ -30,5 +29,3 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN echo 'export PATH=$PATH:/home/jikken-c/bin/maps' >> ~/.bash_profile
-RUN echo 'export LANGUAGE=ja_JP.utf8' >> ~/.bash_profile
-RUN echo 'export LC_ALL=ja_JP.utf8' >> ~/.bash_profile

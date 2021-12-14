@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
 #include <sys/types.h>
@@ -8,11 +9,9 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define MAX_LINE_LEN 1024 /* Maximum characters per line */
+#define BUF_SIZE 1024 /* Maximum characters per line */
 
-bool show_size = false;    /* Whether to show size of struct */
 bool swap_pointer = false; /* Whether to use pointer in swap function */
-bool time_record = false;  /* Whether to record the time */
 
 /*
 * Overview: Structure for specifying date.
@@ -51,12 +50,14 @@ struct profile
 * @type: {FILE *} fp - Pointer for writing/reading.
 */
 int profile_data_nitems = 0;
+char message[BUF_SIZE] = {0};
+bool is_stopping = false, is_restarting = false;
 struct profile profile_data_store[10000];
 struct profile *profile_data_store_ptr[10000];
 FILE *fp;
 
 int get_line(char *line);
-void parse_line(char *line);
+char *parse_line(char *line);
 
 void make_profile_shadow(struct profile data_store[], struct profile *shadow[], int size)
 {
@@ -326,43 +327,42 @@ int match(char *string, char *find)
 }
 
 /*
-* Overview: Exit the program.
-* @return: No return
-*/
-void cmd_quit(void)
-{
-    exit(0);
-}
-
-/*
 * Overview: Output the number of registrations.
 * @argument: {char} cmd - Command alphabet.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
-void cmd_check(char cmd)
+char *cmd_check(char cmd)
 {
-    printf("%d profile(s)\n", profile_data_nitems);
+    sprintf(message, ">> %d profile(s)\n", profile_data_nitems);
+
+    return message;
 }
 
 /*
 * Overview: Output data according to argument.
 * @argument: {char} cmd - Command alphabet.
 * @argument: {char *} param - Command argument.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
-void cmd_print(char cmd, char *param)
+char *cmd_print(char cmd, char *param)
 {
     int count, num = atoi(param);
+    char tmp[1024] = {0};
     if (num == 0)
     {
         count = 0;
         while (count < profile_data_nitems)
         {
-            printf("Id    : %d\n", profile_data_store_ptr[count]->id);
-            printf("Name  : %s\n", profile_data_store_ptr[count]->name);
-            printf("Birth : %04d-%02d-%02d\n", profile_data_store_ptr[count]->birthday.y, profile_data_store_ptr[count]->birthday.m, profile_data_store_ptr[count]->birthday.d);
-            printf("Addr. : %s\n", profile_data_store_ptr[count]->address);
-            printf("Comm. : %s\n\n", profile_data_store_ptr[count]->note);
+            sprintf(tmp, ">> Id    : %d\n", profile_data_store_ptr[count]->id);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Name  : %s\n", profile_data_store_ptr[count]->name);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Birth : %04d-%02d-%02d\n", profile_data_store_ptr[count]->birthday.y, profile_data_store_ptr[count]->birthday.m, profile_data_store_ptr[count]->birthday.d);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Addr. : %s\n", profile_data_store_ptr[count]->address);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Comm. : %s\n\n", profile_data_store_ptr[count]->note);
+            strcat(message, tmp);
             count++;
         }
     }
@@ -373,11 +373,16 @@ void cmd_print(char cmd, char *param)
         count = 0;
         while (count < num)
         {
-            printf("Id    : %d\n", profile_data_store_ptr[count]->id);
-            printf("Name  : %s\n", profile_data_store_ptr[count]->name);
-            printf("Birth : %04d-%02d-%02d\n", profile_data_store_ptr[count]->birthday.y, profile_data_store_ptr[count]->birthday.m, profile_data_store_ptr[count]->birthday.d);
-            printf("Addr. : %s\n", profile_data_store_ptr[count]->address);
-            printf("Comm. : %s\n\n", profile_data_store_ptr[count]->note);
+            sprintf(tmp, ">> Id    : %d\n", profile_data_store_ptr[count]->id);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Name  : %s\n", profile_data_store_ptr[count]->name);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Birth : %04d-%02d-%02d\n", profile_data_store_ptr[count]->birthday.y, profile_data_store_ptr[count]->birthday.m, profile_data_store_ptr[count]->birthday.d);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Addr. : %s\n", profile_data_store_ptr[count]->address);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Comm. : %s\n\n", profile_data_store_ptr[count]->note);
+            strcat(message, tmp);
             count++;
         }
     }
@@ -388,14 +393,20 @@ void cmd_print(char cmd, char *param)
         count = profile_data_nitems + num;
         while (count < profile_data_nitems)
         {
-            printf("Id    : %d\n", profile_data_store_ptr[count]->id);
-            printf("Name  : %s\n", profile_data_store_ptr[count]->name);
-            printf("Birth : %04d-%02d-%02d\n", profile_data_store_ptr[count]->birthday.y, profile_data_store_ptr[count]->birthday.m, profile_data_store_ptr[count]->birthday.d);
-            printf("Addr. : %s\n", profile_data_store_ptr[count]->address);
-            printf("Comm. : %s\n\n", profile_data_store_ptr[count]->note);
+            sprintf(tmp, ">> Id    : %d\n", profile_data_store_ptr[count]->id);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Name  : %s\n", profile_data_store_ptr[count]->name);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Birth : %04d-%02d-%02d\n", profile_data_store_ptr[count]->birthday.y, profile_data_store_ptr[count]->birthday.m, profile_data_store_ptr[count]->birthday.d);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Addr. : %s\n", profile_data_store_ptr[count]->address);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Comm. : %s\n\n", profile_data_store_ptr[count]->note);
+            strcat(message, tmp);
             count++;
         }
     }
+    return message;
 }
 
 /*
@@ -406,7 +417,7 @@ void cmd_print(char cmd, char *param)
 */
 void cmd_read(char cmd, char *param)
 {
-    char line[MAX_LINE_LEN + 1];
+    char line[BUF_SIZE + 1];
     fp = fopen(param, "r");
     if (fp != NULL)
     {
@@ -417,7 +428,7 @@ void cmd_read(char cmd, char *param)
     }
     else
     {
-        fprintf(stderr, "Enterd file cannot be opened.\n");
+        fprintf(stderr, "Entered file cannot be opened.\n");
     }
     fclose(fp);
 }
@@ -450,9 +461,9 @@ void cmd_write(char cmd, char *param)
 * Overview: Search for matching data from registered data and output.
 * @argument: {char} cmd - Command alphabet.
 * @argument: {char *} param - Command argument.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
-void cmd_find(char cmd, char *param)
+char *cmd_find(char cmd, char *param)
 {
     int i;
     char id_tmp[9];
@@ -470,22 +481,29 @@ void cmd_find(char cmd, char *param)
             strcmp(p->address, param) == 0 ||
             strcmp(p->note, param) == 0)
         {
-            printf("Id    : %d\n", profile_data_store_ptr[i]->id);
-            printf("Name  : %s\n", profile_data_store_ptr[i]->name);
-            printf("Birth : %04d-%02d-%02d\n", profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d);
-            printf("Addr. : %s\n", profile_data_store_ptr[i]->address);
-            printf("Comm. : %s\n\n", profile_data_store_ptr[i]->note);
+            char tmp[1024] = {0};
+            sprintf(tmp, ">> Id    : %d\n", profile_data_store_ptr[i]->id);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Name  : %s\n", profile_data_store_ptr[i]->name);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Birth : %04d-%02d-%02d\n", profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Addr. : %s\n", profile_data_store_ptr[i]->address);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Comm. : %s\n\n", profile_data_store_ptr[i]->note);
+            strcat(message, tmp);
         }
     }
+    return message;
 }
 
 /*
 * Overview: Specify the column with an argument and sort the registered data.
 * @argument: {char} cmd - Command alphabet.
 * @argument: {char *} param - Command argument.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
-void cmd_sort(char cmd, char *param)
+char *cmd_sort(char cmd, char *param)
 {
     switch (atoi(param))
     {
@@ -507,6 +525,7 @@ void cmd_sort(char cmd, char *param)
     default:
         break;
     }
+    return message;
 }
 
 /*
@@ -549,36 +568,41 @@ void cmd_match(char cmd, char *param)
 * @argument: {char *} param - Command argument.
 * @return: No return
 */
-void exec_command(char cmd, char *param)
+char *exec_command(char cmd, char *param)
 {
     switch (cmd)
     {
     case 'Q':
-        cmd_quit();
+        is_restarting = true;
+        return ">> Server Reaccepted Successfully.\n";
+        break;
+    case 'D':
+        is_stopping = true;
+        return ">> Server Closed Successfully.\n";
         break;
     case 'C':
-        cmd_check(cmd);
+        return cmd_check(cmd);
         break;
     case 'P':
-        cmd_print(cmd, param);
+        return cmd_print(cmd, param);
         break;
-    case 'R':
-        cmd_read(cmd, param);
-        break;
-    case 'W':
-        cmd_write(cmd, param);
-        break;
+    // case 'R':
+    //     cmd_read(cmd, param);
+    //     break;
+    // case 'W':
+    //     cmd_write(cmd, param);
+    //     break;
     case 'F':
-        cmd_find(cmd, param);
+        return cmd_find(cmd, param);
         break;
     case 'S':
-        cmd_sort(cmd, param);
+        return cmd_sort(cmd, param);
         break;
-    case 'M':
-        cmd_match(cmd, param);
-        break;
+    // case 'M':
+    //     cmd_match(cmd, param);
+    //     break;
     default:
-        fprintf(stderr, "Unregistered Command Is Entered.\n");
+        return ">> Unregistered Command is Entered.\n";
         break;
     }
 }
@@ -643,12 +667,7 @@ int split(char *str, char *ret[], char sep, int max)
 */
 int get_line(char *line)
 {
-    // if (fp != NULL && fgets(line, MAX_LINE_LEN + 1, fp) != NULL)
-    // {
-    //     subst(line, '\n', '\0');
-    //     return 1;
-    // }
-    if (fgets(line, MAX_LINE_LEN + 1, stdin) == NULL)
+    if (fgets(line, BUF_SIZE + 1, stdin) == NULL)
     {
         return 0;
     }
@@ -698,23 +717,24 @@ int new_profile(struct profile *profile_data_store, char *line)
 * @argument: {char *} line - One line.
 * @return: No return
 */
-void parse_line(char *line)
+char *parse_line(char *line)
 {
     if (*line == '%')
     {
-        exec_command(line[1], &line[3]);
+        return exec_command(line[1], &line[3]);
     }
     else
     {
-        new_profile(profile_data_store_ptr[profile_data_nitems++], line);
+        if (!new_profile(profile_data_store_ptr[profile_data_nitems++], line))
+            return ">> Register Successfully\n";
+        else
+            return ">> Register Failed\n";
     }
 }
 
 int main(void)
 {
     int sock;
-    struct addrinfo hints, *result;
-    struct in_addr addr;
     struct sockaddr_in sa;
 
     /*
@@ -723,46 +743,10 @@ int main(void)
     * ================================
     */
 
-    /*
-    * ----------------------
-    *  1.1 サーバ情報
-    * ----------------------
-    */
-
-    char *hostname = "localhost";
-    char *port = "80";
-
-    /*
-    * ----------------------
-    *  1.2 IPアドレスの取得
-    * ----------------------
-    */
-
-    bzero((char *)&hints, sizeof(hints));
-    hints.ai_family = AF_INET;
-    hints.ai_socktype = SOCK_STREAM;
-
-    if ((getaddrinfo(hostname, port, &hints, &result)) != 0)
-    {
-        printf("[Error] GetAddrInfo Error Occurred.\n");
-        return 1;
-    }
-
-    addr.s_addr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr;
-
-    printf("> IP Address: %s\n", inet_ntoa(addr));
-
-    /*
-    * ----------------------
-    *  1.3 IPアドレスの取得
-    * ----------------------
-    */
-
-    sock = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+    sock = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
     if (sock == -1)
     {
         printf("[Error] Socket Error Occurred.\n");
-        freeaddrinfo(result);
         return -1;
     }
 
@@ -785,7 +769,6 @@ int main(void)
     {
         perror("[Error] SetSockOpt Error Occurred.\n");
         close(sock);
-        freeaddrinfo(result);
         return -1;
     }
 
@@ -793,7 +776,6 @@ int main(void)
     {
         printf("[Error] Bind Error Occurred.\n");
         close(sock);
-        freeaddrinfo(result);
         return -1;
     }
 
@@ -809,79 +791,84 @@ int main(void)
     {
         printf("[Error] Listen Error Occurred.\n");
         close(sock);
-        freeaddrinfo(result);
         return -1;
     }
 
     printf("> Listen Started.\n");
 
-    /*
-    * ================================
-    *  4. 接続要求を受け付ける
-    * ================================
-    */
-
-    socklen_t len = sizeof(struct sockaddr);
-    int new_sock = accept(sock, (struct sockaddr *)&sa, &len);
-
-    if (new_sock == -1)
+    while (!is_stopping)
     {
-        printf("[Error] Accept Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+        /*
+        * ================================
+        *  4. 接続要求を受け付ける
+        * ================================
+        */
 
-    /*
-    * ================================
-    *  5. メッセージを受信する
-    * ================================
-    */
+        socklen_t len = sizeof(struct sockaddr);
+        int new_sock = accept(sock, (struct sockaddr *)&sa, &len);
 
-    char buf[MAX_LINE_LEN] = {0};
-    int recv_size = recv(new_sock, (void *)buf, sizeof(buf), 0);
-    if (recv_size == -1)
-    {
-        printf("[Error] Receive Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
+        if (new_sock == -1)
+        {
+            printf("[Error] Accept Error Occurred.\n");
+            close(sock);
+            return -1;
+        }
 
-    printf("> Message Received Successfully.（%d bytes）\n", recv_size);
+        while (!is_stopping && !is_restarting)
+        {
+            /*
+            * ================================
+            *  5. メッセージを受信する
+            * ================================
+            */
 
-    /*
-    * ================================
-    *  @. サーバ内部処理
-    * ================================
-    */
+            char buf[BUF_SIZE] = {0};
+            int recv_size = recv(new_sock, (void *)buf, sizeof(buf), 0);
+            if (recv_size == -1)
+            {
+                printf("[Error] Receive Error Occurred.\n");
+                close(sock);
+                return -1;
+            }
 
-    make_profile_shadow(profile_data_store, profile_data_store_ptr, 10000);
-    char line[MAX_LINE_LEN + 1];
+            printf("> Message Received Successfully.（%d bytes）\n", recv_size);
 
-    while (get_line(line))
-        parse_line(line);
+            /*
+            * ================================
+            *  @. サーバ内部処理
+            * ================================
+            */
 
-    /*
-    * ================================
-    *  6. メッセージを送信する
-    * ================================
-    */
+            make_profile_shadow(profile_data_store, profile_data_store_ptr, 10000);
+            // char line[BUF_SIZE + 1];
 
-    if (send(new_sock, (const void *)buf, strlen(buf), 0) == -1)
-    {
-        printf("[Error] Send Error Occurred.\n");
-        close(sock);
+            // while (get_line(line, buf))
+            // parse_line(buf);
+            char *response = parse_line(buf);
+            printf("\n%s\n", response);
+
+            /*
+            * ================================
+            *  6. メッセージを送信する
+            * ================================
+            */
+
+            if (send(new_sock, (const void *)response, strlen(response), 0) == -1)
+            {
+                printf("[Error] Send Error Occurred.\n");
+                close(sock);
+                close(new_sock);
+                return -1;
+            }
+
+            printf("> Message Sent Successfully.\n");
+
+            message[0] = '\0';
+        }
         close(new_sock);
-        freeaddrinfo(result);
-        return -1;
+        is_restarting = false;
     }
-
-    printf("> Message Sent Successfully.\n");
-
     close(sock);
-    close(new_sock);
-    freeaddrinfo(result);
 
     return 0;
 }

@@ -1,11 +1,92 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdbool.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 
 #define BUF_SIZE 9216
+
+bool show_network_log = false; /* Whether to show network logs */
+bool is_loop = true;
+
+void exec_command(char cmd, char *param)
+{
+    switch (cmd)
+    {
+    case 'Q':
+        is_loop = false;
+        break;
+    // case 'C':
+    //     return cmd_check(cmd);
+    //     break;
+    // case 'P':
+    //     return cmd_print(cmd, param);
+    //     break;
+    // case 'R':
+    //     cmd_read(cmd, param);
+    //     break;
+    // case 'W':
+    //     cmd_write(cmd, param);
+    //     break;
+    // case 'F':
+    //     return cmd_find(cmd, param);
+    //     break;
+    // case 'S':
+    //     return cmd_sort(cmd, param);
+    //     break;
+    // case 'M':
+    //     cmd_match(cmd, param);
+    //     break;
+    // default:
+    //     printf(">> Unregistered Command is Entered.\n");
+    //     break;
+    }
+}
+
+/*
+* Overview: Replaces c1 in the string with c2.
+* @argument: {char *} str - String.
+* @argument: {char} c1 - Replaced.
+* @argument: {char} c2 - Replace.
+* @return: {int} diff - Number of replacements.
+*/
+int subst(char *str, char c1, char c2)
+{
+    int diff = 0;
+    char *p;
+
+    p = str;
+    while (*p != '\0')
+    {
+        if (*p == c1)
+        {
+            *p = c2;
+            diff++;
+        }
+        p++;
+    }
+    return diff;
+}
+
+/*
+* Overview: Get line from file or standard input.
+* @argument: {char *} line - Full text.
+* @return: Whether there is next line.
+*/
+int get_line(char *line)
+{
+    if (fgets(line, BUF_SIZE + 1, stdin) == NULL)
+    {
+        return 0;
+    }
+    else
+    {
+        subst(line, '\n', '\0');
+        return 1;
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -62,7 +143,8 @@ int main(int argc, char **argv)
 
     addr.s_addr = ((struct sockaddr_in *)(result->ai_addr))->sin_addr.s_addr;
 
-    printf("> IP Address: %s\n", inet_ntoa(addr));
+    if (show_network_log)
+        printf("> IP Address: %s\n", inet_ntoa(addr));
 
     /*
     * ================================
@@ -78,7 +160,8 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    printf("> Socket Created Successfully.\n");
+    if (show_network_log)
+        printf("> Socket Created Successfully.\n");
 
     /*
     * ================================
@@ -94,51 +177,63 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    printf("> Connect Successfully.\n");
+    if (show_network_log)
+        printf("> Connect Successfully.\n");
 
-    /*
-    * ================================
-    *  4. 要求メッセージを送信
-    * ================================
-    */
-
-    char message[BUF_SIZE] = {0};
-
-    for (int i = 1; i < argc; i++)
+    char line[BUF_SIZE + 1] = {0};
+    while (is_loop && get_line(line))
     {
-        if (i != 1)
-            strcat(message, " ");
-        strcat(message, argv[i]);
+        /*
+        * ================================
+        *  4. 要求メッセージを送信
+        * ================================
+        */
+
+        // int wc = 0;
+        // char message[BUF_SIZE + 1] = {0};
+
+        // while (line[wc])
+        //     wc++;
+        // line[wc] = '\0';
+
+        printf(">> %s\n", line);
+        
+        if (*line == '%')
+        {
+            exec_command(line[1], &line[3]);
+        }
+
+        if (send(sock, (const void *)line, strlen(line), 0) == -1)
+        {
+            printf("[Error] Send Error Occurred.\n");
+            close(sock);
+            freeaddrinfo(result);
+            return -1;
+        }
+
+        if (show_network_log)
+            printf("> Message Sent Successfully.\n");
+
+        /*
+        * ================================
+        *  5. 応答メッセージを受信
+        * ================================
+        */
+
+        char buf[BUF_SIZE] = {0};
+        int recv_size = recv(sock, (void *)buf, sizeof(buf), 0);
+        if (recv_size == -1)
+        {
+            printf("[Error] Receive Error Occurred.\n");
+            close(sock);
+            freeaddrinfo(result);
+            return -1;
+        }
+
+        if (show_network_log)
+            printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
+        printf("%s\n", buf);
     }
-
-    if (send(sock, (const void *)message, strlen(message), 0) == -1)
-    {
-        printf("[Error] Send Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
-
-    printf("> Message Sent Successfully.\n");
-
-    /*
-    * ================================
-    *  5. 応答メッセージを受信
-    * ================================
-    */
-
-    char buf[BUF_SIZE] = {0};
-    int recv_size = recv(sock, (void *)buf, sizeof(buf), 0);
-    if (recv_size == -1)
-    {
-        printf("[Error] Receive Error Occurred.\n");
-        close(sock);
-        freeaddrinfo(result);
-        return -1;
-    }
-
-    printf("> Message Received Successfully.（%d bytes）\n", recv_size);
-    printf("%s\n", buf);
 
     close(sock);
     freeaddrinfo(result);
