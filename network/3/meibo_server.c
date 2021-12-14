@@ -761,7 +761,7 @@ int main(void)
     memset((char *)&sa, 0, sizeof(sa));
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
-    sa.sin_port = htons((uint16_t)80);
+    sa.sin_port = htons((uint16_t)8080);
 
     int yes = 1;
 

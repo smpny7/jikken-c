@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     * ================================
     */
     char *hostname = "localhost";
-    char *port = "80";
+    char *port = "8080";
 
     /*
     * ================================
@@ -108,24 +108,24 @@ int main(int argc, char **argv)
     * ================================
     */
 
-    /* 
+    /*
     * ------------------------------------
-    *  ▼ gethostbyname を使用した接続方法 ▼ 
+    *  ▼ gethostbyname を使用した接続方法 ▼
     * ------------------------------------
-    * 
+    *
     *  struct hostent *hp;
-    * 
+    *
     *  hp = gethostbyname("www.edu.cs.okayama-u.ac.jp");
-    * 
+    *
     *  if (hp == NULL)
     *  {
     *      printf("[Error] Gethostbyname Error Occurred.\n");
     *      return 1;
     *  }
-    * 
+    *
     *  addr = (struct in_addr *)(hp->h_addr);
     *  printf("> IP Address: %s\n", inet_ntoa(*addr));
-    * 
+    *
     * ------------------------------------
     *  ▲ gethostbyname を使用した接続方法 ▲
     * ------------------------------------
@@ -197,7 +197,7 @@ int main(int argc, char **argv)
         // line[wc] = '\0';
 
         printf(">> %s\n", line);
-        
+
         if (*line == '%')
         {
             exec_command(line[1], &line[3]);
