@@ -3,14 +3,60 @@
 #include <stdbool.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <fcntl.h>
 #include <netdb.h>
 #include <unistd.h>
 
 #define BUF_SIZE 9216
+#define FILE_BUF_SIZE 358400
+#define FILE_LINE_SIZE 10000
 
 bool show_network_log = false; /* Whether to show network logs */
 bool is_loop = true;
+bool is_reading = false;
+char file_buf[FILE_BUF_SIZE + 1];
 
+/*
+* Overview: Read data and register in array.
+* @argument: {char} cmd - Command alphabet.
+* @argument: {char *} param - Command argument.
+* @return: No return
+*/
+void cmd_read(char *param)
+{
+    int fd, r;
+
+    fd = open(param, O_RDONLY);
+    if (fd == -1)
+    {
+        printf("[Error] File Open Error\n");
+        is_reading = false;
+        return;
+    }
+
+    r = read(fd, file_buf, FILE_BUF_SIZE);
+
+    // ファイル末尾が改行でない場合
+    if (file_buf[strlen(file_buf) - 1] != '\n')
+        file_buf[strlen(file_buf)] = '\n';
+
+    if (r == -1)
+    {
+        printf("[Error] File Read Error\n");
+        is_reading = false;
+        return;
+    }
+    close(fd);
+    is_reading = true;
+    return;
+}
+
+/*
+* Overview: Calls functions when the command is input.
+* @argument: {char} cmd - Command alphabet.
+* @argument: {char *} param - Command argument.
+* @return: No return
+*/
 void exec_command(char cmd, char *param)
 {
     switch (cmd)
@@ -19,15 +65,15 @@ void exec_command(char cmd, char *param)
     case 'D':
         is_loop = false;
         break;
-        // case 'C':
-        //     return cmd_check(cmd);
-        //     break;
-        // case 'P':
-        //     return cmd_print(cmd, param);
-        //     break;
-        // case 'R':
-        //     cmd_read(cmd, param);
-        //     break;
+    // case 'C':
+    //     return cmd_check(cmd);
+    //     break;
+    // case 'P':
+    //     return cmd_print(cmd, param);
+    //     break;
+    case 'R':
+        cmd_read(param);
+        break;
         // case 'W':
         //     cmd_write(cmd, param);
         //     break;
@@ -69,6 +115,34 @@ int subst(char *str, char c1, char c2)
         p++;
     }
     return diff;
+}
+
+/*
+* Overview: Separate string by the specified number of characters/times.
+* @argument: {char *} str - String.
+* @argument: {char *} ret[] - Separated string.
+* @argument: {char} sep - Delimiter.
+* @argument: {int} max - Maximum number to divide.
+* @return: Number of divisions
+*/
+int split(char *str, char *ret[], char sep, int max)
+{
+    int count = 1;
+    ret[0] = str;
+
+    while (*str)
+    {
+        if (count >= max)
+            break;
+        if (*str == sep)
+        {
+            *str = '\0';
+            ret[count++] = str + 1;
+        }
+        str++;
+    }
+
+    return count;
 }
 
 /*
@@ -190,13 +264,6 @@ int main(int argc, char **argv)
         * ================================
         */
 
-        // int wc = 0;
-        // char message[BUF_SIZE + 1] = {0};
-
-        // while (line[wc])
-        //     wc++;
-        // line[wc] = '\0';
-
         printf(">> %s\n", line);
 
         if (*line == '%')
@@ -204,36 +271,50 @@ int main(int argc, char **argv)
             exec_command(line[1], &line[3]);
         }
 
-        if (send(sock, (const void *)line, strlen(line), 0) == -1)
+        int line_count = 1;
+        char *ret[FILE_LINE_SIZE] = {0}, sep_line = '\n';
+
+        if (is_reading)
+            line_count = split(file_buf, ret, sep_line, FILE_LINE_SIZE) - 1;
+
+        for (int i = 0; i < line_count; i++)
         {
-            printf("[Error] Send Error Occurred.\n");
-            close(sock);
-            freeaddrinfo(result);
-            return -1;
+
+            if (is_reading)
+                strcpy(line, ret[i]);
+
+            if (send(sock, (const void *)line, strlen(line), 0) == -1)
+            {
+                printf("[Error] Send Error Occurred.\n");
+                close(sock);
+                freeaddrinfo(result);
+                return -1;
+            }
+
+            if (show_network_log)
+                printf("> Message Sent Successfully.\n");
+
+            /*
+            * ================================
+            *  5. 応答メッセージを受信
+            * ================================
+            */
+
+            char buf[FILE_BUF_SIZE] = {0};
+            int recv_size = recv(sock, (void *)buf, sizeof(buf), 0);
+            if (recv_size == -1)
+            {
+                printf("[Error] Receive Error Occurred.\n");
+                close(sock);
+                freeaddrinfo(result);
+                return -1;
+            }
+
+            if (show_network_log)
+                printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
+            printf("%s\n", buf);
         }
-
-        if (show_network_log)
-            printf("> Message Sent Successfully.\n");
-
-        /*
-        * ================================
-        *  5. 応答メッセージを受信
-        * ================================
-        */
-
-        char buf[BUF_SIZE] = {0};
-        int recv_size = recv(sock, (void *)buf, sizeof(buf), 0);
-        if (recv_size == -1)
-        {
-            printf("[Error] Receive Error Occurred.\n");
-            close(sock);
-            freeaddrinfo(result);
-            return -1;
-        }
-
-        if (show_network_log)
-            printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
-        printf("%s\n", buf);
+        is_reading = false;
     }
 
     close(sock);

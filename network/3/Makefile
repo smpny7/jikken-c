@@ -9,9 +9,11 @@ meibo:
 	rm -rf *~ meibo
 
 client:
+	rm -rf *~ client output.log
 	gcc -Wall client.c -o client
-	./client < input_1.txt
-	./client < input_2.txt
+	./client < input_1.txt >> output.log
+	./client < input_2.txt >> output.log
+	diff output.log output_success.log
 	rm -rf *~ client
 
 c:

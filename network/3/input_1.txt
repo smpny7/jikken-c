@@ -1,4 +1,4 @@
 %C
-8681139,Cedars School of Excellence,1967-11-3,Lothian Road Greenock,01475 631074 Primary 20 3.1 Secondary 11 2.6 Open
-%C
+8681100,Okayama Univ,2001-1-1,Lothian Road Greenock,01475 631074 Primary 20 3.1 Secondary 11 2.6 Open
+%P 0
 %Q

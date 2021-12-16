@@ -9,7 +9,9 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define BUF_SIZE 1024 /* Maximum characters per line */
+#define BUF_SIZE 9216 /* Maximum characters per line */
+#define FILE_BUF_SIZE 358400
+#define FILE_LINE_SIZE 10000
 
 bool swap_pointer = false; /* Whether to use pointer in swap function */
 
@@ -50,10 +52,10 @@ struct profile
 * @type: {FILE *} fp - Pointer for writing/reading.
 */
 int profile_data_nitems = 0;
-char message[BUF_SIZE] = {0};
+char message[FILE_BUF_SIZE] = {0};
 bool is_stopping = false, is_restarting = false;
-struct profile profile_data_store[10000];
-struct profile *profile_data_store_ptr[10000];
+struct profile profile_data_store[FILE_LINE_SIZE];
+struct profile *profile_data_store_ptr[FILE_LINE_SIZE];
 FILE *fp;
 
 int get_line(char *line);
@@ -839,7 +841,7 @@ int main(void)
             * ================================
             */
 
-            make_profile_shadow(profile_data_store, profile_data_store_ptr, 10000);
+            make_profile_shadow(profile_data_store, profile_data_store_ptr, FILE_LINE_SIZE);
             // char line[BUF_SIZE + 1];
 
             // while (get_line(line, buf))
