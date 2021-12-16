@@ -10,7 +10,8 @@
 #include <unistd.h>
 
 #define BUF_SIZE 9216 /* Maximum characters per line */
-#define FILE_BUF_SIZE 358400
+#define SEND_SIZE 65535
+#define FILE_BUF_SIZE 507860
 #define FILE_LINE_SIZE 10000
 
 bool swap_pointer = false; /* Whether to use pointer in swap function */
@@ -496,6 +497,8 @@ char *cmd_find(char cmd, char *param)
             strcat(message, tmp);
         }
     }
+    if (!*message)
+        sprintf(message, "No Result for \"%s\".\n", param);
     return message;
 }
 
@@ -527,6 +530,7 @@ char *cmd_sort(char cmd, char *param)
     default:
         break;
     }
+    strcat(message, "Sorted Successfully.\n");
     return message;
 }
 
@@ -728,9 +732,9 @@ char *parse_line(char *line)
     else
     {
         if (!new_profile(profile_data_store_ptr[profile_data_nitems++], line))
-            return ">> Register Successfully\n";
+            return ">> Register Successfully.\n";
         else
-            return ">> Register Failed\n";
+            return ">> Register Failed.\n";
     }
 }
 
@@ -855,12 +859,32 @@ int main(void)
             * ================================
             */
 
-            if (send(new_sock, (const void *)response, strlen(response), 0) == -1)
+            while (1)
             {
-                printf("[Error] Send Error Occurred.\n");
-                close(sock);
-                close(new_sock);
-                return -1;
+                if (strlen(response) / SEND_SIZE >= 1)
+                {
+                    if (send(new_sock, (const void *)response, SEND_SIZE, 0) == -1)
+                    {
+                        printf("[Error] Send Error Occurred.\n");
+                        close(sock);
+                        close(new_sock);
+                        return -1;
+                    }
+                    response += SEND_SIZE;
+                }
+                else
+                {
+                    // strcat(response, -1);
+                    if (send(new_sock, (const void *)response, strlen(response), 0) == -1)
+                    {
+                        printf("[Error] Send Error Occurred.\n");
+                        close(sock);
+                        close(new_sock);
+                        return -1;
+                    }
+                    break;
+                }
+                printf("Sending...\n");
             }
 
             printf("> Message Sent Successfully.\n");

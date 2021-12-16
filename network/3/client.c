@@ -8,7 +8,8 @@
 #include <unistd.h>
 
 #define BUF_SIZE 9216
-#define FILE_BUF_SIZE 358400
+#define SEND_SIZE 65535
+#define FILE_BUF_SIZE 507860
 #define FILE_LINE_SIZE 10000
 
 bool show_network_log = false; /* Whether to show network logs */
@@ -264,7 +265,7 @@ int main(int argc, char **argv)
         * ================================
         */
 
-        printf(">> %s\n", line);
+        printf("> %s\n", line);
 
         if (*line == '%')
         {
@@ -300,19 +301,25 @@ int main(int argc, char **argv)
             * ================================
             */
 
-            char buf[FILE_BUF_SIZE] = {0};
-            int recv_size = recv(sock, (void *)buf, sizeof(buf), 0);
-            if (recv_size == -1)
+            while (1)
             {
-                printf("[Error] Receive Error Occurred.\n");
-                close(sock);
-                freeaddrinfo(result);
-                return -1;
-            }
+                char buf[SEND_SIZE] = {0};
+                int recv_size = recv(sock, (void *)buf, sizeof(buf), 0);
+                if (recv_size == -1)
+                {
+                    printf("[Error] Receive Error Occurred.\n");
+                    close(sock);
+                    freeaddrinfo(result);
+                    return -1;
+                }
 
-            if (show_network_log)
-                printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
-            printf("%s\n", buf);
+                if (show_network_log)
+                    printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
+                if (!is_reading || i == line_count - 1)
+                    printf("%s\n", buf);
+                if (strlen(buf) < SEND_SIZE)
+                    break;
+            }
         }
         is_reading = false;
     }

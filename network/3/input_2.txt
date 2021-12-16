@@ -1,4 +1,6 @@
 %R sample.csv.org
+%S 3
 %P 0
 %C
+%F Okayama Univ
 %D
