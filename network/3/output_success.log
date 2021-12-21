@@ -11,11 +11,9 @@
 >> Addr. : Lothian Road Greenock
 >> Comm. : 01475 631074 Primary 20 3.1 Secondary 11 2.6 Open
 
-
 > %Q
 >> Server Reaccepted Successfully.
-
-> %R sample.csv.org
+> %R sample.csv
 >> Register Successfully.
 
 > %S 3
@@ -2257,8 +2255,7 @@ Sorted Successfully.
 >> Id    : 5780438
 >> Name  : Queen Victoria School
 >> Birth : 1825-12-02
->> Addr. : Dunblane Perthshir
-e
+>> Addr. : Dunblane Perthshire
 >> Comm. : 01786 822288 0131 3102955 Primary 36 2.0 Secondary 245 28.6 Open
 
 >> Id    : 5329531
@@ -4506,8 +4503,7 @@ e
 >> Comm. : 01506 847452 01506 671834 Primary 372 18.0 Open
 
 >> Id    : 5520029
->> Name  : Castl
-eview Primary School
+>> Name  : Castleview Primary School
 >> Birth : 1852-08-15
 >> Addr. : Greendykes Road Edinburgh
 >> Comm. : 0131 661 6429 0131 6619493 Primary 205 15.2 Open
@@ -6734,8 +6730,7 @@ eview Primary School
 
 >> Id    : 8220921
 >> Name  : Galston Primary School
->> 
-Birth : 1878-04-25
+>> Birth : 1878-04-25
 >> Addr. : Glebe Road Galston
 >> Comm. : 01563 820221 01563 820221 Primary 367 17.0 Open
 
@@ -8968,8 +8963,7 @@ Birth : 1878-04-25
 >> Id    : 6230520
 >> Name  : Bernera Primary School
 >> Birth : 1904-04-16
->> Addr. : Bern
-era Lewis
+>> Addr. : Bernera Lewis
 >> Comm. : 01851 612254 01851 612213 Primary 17 2.3 Open
 
 >> Id    : 5535042
@@ -11208,8 +11202,7 @@ era Lewis
 >> Name  : Barrhill Primary School
 >> Birth : 1929-10-28
 >> Addr. : Main Street Barhill
->> Com
-m. : 01465 821281 01465 821495 Primary 24 3.0 Open
+>> Comm. : 01465 821281 01465 821495 Primary 24 3.0 Open
 
 >> Id    : 5120829
 >> Name  : Scoraig Primary School
@@ -13446,8 +13439,7 @@ m. : 01465 821281 01465 821495 Primary 24 3.0 Open
 >> Id    : 5900425
 >> Name  : Garlieston School
 >> Birth : 1956-02-02
->> 
-Addr. : Garlieston Newton Stewart
+>> Addr. : Garlieston Newton Stewart
 >> Comm. : 01988 600277 01988 600277 Primary 27 2.1 Open
 
 >> Id    : 5101824
@@ -15683,8 +15675,7 @@ Addr. : Garlieston Newton Stewart
 >> Comm. : 01224 315487 01224 312225 Primary 454 20.6 Open
 
 >> Id    : 5521920
->> Name  : Carrick 
-Knowe Primary School
+>> Name  : Carrick Knowe Primary School
 >> Birth : 1980-10-05
 >> Addr. : Lampacre Road Edinburgh
 >> Comm. : 0131 3344505 0131 4677923 Primary 468 22.7 Open
@@ -17351,7 +17342,6 @@ Knowe Primary School
 >> Addr. : Lothian Road Greenock
 >> Comm. : 01475 631074 Primary 20 3.1 Secondary 11 2.6 Open
 
-
 > %C
 >> 2887 profile(s)
 
@@ -17362,7 +17352,8 @@ Knowe Primary School
 >> Addr. : Lothian Road Greenock
 >> Comm. : 01475 631074 Primary 20 3.1 Secondary 11 2.6 Open
 
+> %W output.csv
+>> Exported Successfully.
 
 > %D
 >> Server Closed Successfully.
-

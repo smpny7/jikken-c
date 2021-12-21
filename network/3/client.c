@@ -1,6 +1,7 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <fcntl.h>
@@ -8,13 +9,15 @@
 #include <unistd.h>
 
 #define BUF_SIZE 9216
-#define SEND_SIZE 65535
+#define SEND_SIZE 30000
 #define FILE_BUF_SIZE 507860
 #define FILE_LINE_SIZE 10000
 
 bool show_network_log = false; /* Whether to show network logs */
 bool is_loop = true;
 bool is_reading = false;
+bool is_writing = false;
+int fd_w;
 char file_buf[FILE_BUF_SIZE + 1];
 
 /*
@@ -53,6 +56,26 @@ void cmd_read(char *param)
 }
 
 /*
+* Overview: Read data and register in array.
+* @argument: {char} cmd - Command alphabet.
+* @argument: {char *} param - Command argument.
+* @return: No return
+*/
+void cmd_write(char *param)
+{
+    fd_w = open(param, O_WRONLY | O_CREAT | O_TRUNC, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); // 644 Permission
+    if (fd_w == -1)
+    {
+        printf("[Error] File Open Error\n");
+        is_writing = false;
+        exit(1);
+    }
+
+    is_writing = true;
+    return;
+}
+
+/*
 * Overview: Calls functions when the command is input.
 * @argument: {char} cmd - Command alphabet.
 * @argument: {char *} param - Command argument.
@@ -75,9 +98,9 @@ void exec_command(char cmd, char *param)
     case 'R':
         cmd_read(param);
         break;
-        // case 'W':
-        //     cmd_write(cmd, param);
-        //     break;
+    case 'W':
+        cmd_write(param);
+        break;
         // case 'F':
         //     return cmd_find(cmd, param);
         //     break;
@@ -315,11 +338,31 @@ int main(int argc, char **argv)
 
                 if (show_network_log)
                     printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
-                if (!is_reading || i == line_count - 1)
-                    printf("%s\n", buf);
+                if (is_writing)
+                {
+                    // int buf_size = buf[strlen(buf) - 1] == '\0' || buf[strlen(buf) - 1] == '\n' ? strlen(buf) - 2 : strlen(buf);
+                    int w = write(fd_w, buf, strlen(buf));
+                    if (w == -1)
+                    {
+                        printf("[Error] File Write Error\n");
+                        is_writing = false;
+                        exit(1);
+                    }
+                }
+                else
+                {
+                    if (!is_reading || i == line_count - 1)
+                        printf("%s", buf);
+                }
                 if (strlen(buf) < SEND_SIZE)
                     break;
             }
+            if (is_writing)
+            {
+                close(fd_w);
+                printf(">> Exported Successfully.\n\n");
+            }
+            is_writing = false;
         }
         is_reading = false;
     }

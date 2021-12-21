@@ -10,7 +10,7 @@
 #include <unistd.h>
 
 #define BUF_SIZE 9216 /* Maximum characters per line */
-#define SEND_SIZE 65535
+#define SEND_SIZE 30000
 #define FILE_BUF_SIZE 507860
 #define FILE_LINE_SIZE 10000
 
@@ -336,7 +336,7 @@ int match(char *string, char *find)
 */
 char *cmd_check(char cmd)
 {
-    sprintf(message, ">> %d profile(s)\n", profile_data_nitems);
+    sprintf(message, ">> %d profile(s)\n\n", profile_data_nitems);
 
     return message;
 }
@@ -439,25 +439,17 @@ void cmd_read(char cmd, char *param)
 /*
 * Overview: Export registered data.
 * @argument: {char} cmd - Command alphabet.
-* @argument: {char *} param - Command argument.
 * @return: No return
 */
-void cmd_write(char cmd, char *param)
+char *cmd_write(char cmd)
 {
-    int i;
-    fp = fopen(param, "w");
-    if (fp != NULL)
+    char tmp[1024] = {0};
+    for (int i = 0; i < profile_data_nitems; i++)
     {
-        for (i = 0; i < profile_data_nitems; i++)
-        {
-            fprintf(fp, "%d,%s,%04d-%02d-%02d,%s,%s\n", profile_data_store_ptr[i]->id, profile_data_store_ptr[i]->name, profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d, profile_data_store_ptr[i]->address, profile_data_store_ptr[i]->note);
-        }
+        sprintf(tmp, "%d,%s,%04d-%02d-%02d,%s,%s\n", profile_data_store_ptr[i]->id, profile_data_store_ptr[i]->name, profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d, profile_data_store_ptr[i]->address, profile_data_store_ptr[i]->note);
+        strcat(message, tmp);
     }
-    else
-    {
-        fprintf(stderr, "Entered file cannot be opened.\n");
-    }
-    fclose(fp);
+    return message;
 }
 
 /*
@@ -498,7 +490,7 @@ char *cmd_find(char cmd, char *param)
         }
     }
     if (!*message)
-        sprintf(message, "No Result for \"%s\".\n", param);
+        sprintf(message, "No Result for \"%s\".\n\n", param);
     return message;
 }
 
@@ -530,7 +522,7 @@ char *cmd_sort(char cmd, char *param)
     default:
         break;
     }
-    strcat(message, "Sorted Successfully.\n");
+    strcat(message, "Sorted Successfully.\n\n");
     return message;
 }
 
@@ -595,9 +587,9 @@ char *exec_command(char cmd, char *param)
     // case 'R':
     //     cmd_read(cmd, param);
     //     break;
-    // case 'W':
-    //     cmd_write(cmd, param);
-    //     break;
+    case 'W':
+        return cmd_write(cmd);
+        break;
     case 'F':
         return cmd_find(cmd, param);
         break;
@@ -608,7 +600,7 @@ char *exec_command(char cmd, char *param)
     //     cmd_match(cmd, param);
     //     break;
     default:
-        return ">> Unregistered Command is Entered.\n";
+        return ">> Unregistered Command is Entered.\n\n";
         break;
     }
 }
@@ -732,9 +724,9 @@ char *parse_line(char *line)
     else
     {
         if (!new_profile(profile_data_store_ptr[profile_data_nitems++], line))
-            return ">> Register Successfully.\n";
+            return ">> Register Successfully.\n\n";
         else
-            return ">> Register Failed.\n";
+            return ">> Register Failed.\n\n";
     }
 }
 
