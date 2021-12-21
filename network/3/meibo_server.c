@@ -443,8 +443,9 @@ void cmd_read(char cmd, char *param)
 */
 char *cmd_write(char cmd)
 {
+    int i;
     char tmp[1024] = {0};
-    for (int i = 0; i < profile_data_nitems; i++)
+    for (i = 0; i < profile_data_nitems; i++)
     {
         sprintf(tmp, "%d,%s,%04d-%02d-%02d,%s,%s\n", profile_data_store_ptr[i]->id, profile_data_store_ptr[i]->name, profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d, profile_data_store_ptr[i]->address, profile_data_store_ptr[i]->note);
         strcat(message, tmp);

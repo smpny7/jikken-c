@@ -301,7 +301,8 @@ int main(int argc, char **argv)
         if (is_reading)
             line_count = split(file_buf, ret, sep_line, FILE_LINE_SIZE) - 1;
 
-        for (int i = 0; i < line_count; i++)
+        int i;
+        for (i = 0; i < line_count; i++)
         {
 
             if (is_reading)
