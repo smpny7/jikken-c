@@ -9,7 +9,7 @@
 #include <unistd.h>
 
 #define BUF_SIZE 9216
-#define SEND_SIZE 30000
+#define SEND_SIZE 10000
 #define FILE_BUF_SIZE 507860
 #define FILE_LINE_SIZE 10000
 
