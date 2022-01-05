@@ -8,10 +8,10 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define BUF_SIZE 9216
-#define SEND_SIZE 10000
-#define FILE_BUF_SIZE 507860
-#define FILE_LINE_SIZE 10000
+#define BUF_SIZE 9216        /* Maximum characters per line */
+#define SEND_SIZE 10000      /* Maximum characters to send */
+#define FILE_BUF_SIZE 507860 /* Maximum characters to read from a file */
+#define FILE_LINE_SIZE 10000 /* Maximum lines to read from a file */
 
 bool show_network_log = false; /* Whether to show network logs */
 bool is_loop = true;
@@ -28,9 +28,7 @@ char file_buf[FILE_BUF_SIZE + 1];
 */
 void cmd_read(char *param)
 {
-    int fd, r;
-
-    fd = open(param, O_RDONLY);
+    int fd = open(param, O_RDONLY);
     if (fd == -1)
     {
         printf("[Error] File Open Error\n");
@@ -38,11 +36,7 @@ void cmd_read(char *param)
         return;
     }
 
-    r = read(fd, file_buf, FILE_BUF_SIZE);
-
-    // ファイル末尾が改行でない場合
-    if (file_buf[strlen(file_buf) - 1] != '\n')
-        file_buf[strlen(file_buf)] = '\n';
+    int r = read(fd, file_buf, FILE_BUF_SIZE);
 
     if (r == -1)
     {
@@ -50,6 +44,11 @@ void cmd_read(char *param)
         is_reading = false;
         return;
     }
+
+    // ファイル末尾が改行でない場合
+    if (file_buf[strlen(file_buf) - 1] != '\n')
+        file_buf[strlen(file_buf)] = '\n';
+
     close(fd);
     is_reading = true;
     return;
@@ -89,30 +88,12 @@ void exec_command(char cmd, char *param)
     case 'D':
         is_loop = false;
         break;
-    // case 'C':
-    //     return cmd_check(cmd);
-    //     break;
-    // case 'P':
-    //     return cmd_print(cmd, param);
-    //     break;
     case 'R':
         cmd_read(param);
         break;
     case 'W':
         cmd_write(param);
         break;
-        // case 'F':
-        //     return cmd_find(cmd, param);
-        //     break;
-        // case 'S':
-        //     return cmd_sort(cmd, param);
-        //     break;
-        // case 'M':
-        //     cmd_match(cmd, param);
-        //     break;
-        // default:
-        //     printf(">> Unregistered Command is Entered.\n");
-        //     break;
     }
 }
 
@@ -207,29 +188,6 @@ int main(int argc, char **argv)
     * ================================
     */
 
-    /*
-    * ------------------------------------
-    *  ▼ gethostbyname を使用した接続方法 ▼
-    * ------------------------------------
-    *
-    *  struct hostent *hp;
-    *
-    *  hp = gethostbyname("www.edu.cs.okayama-u.ac.jp");
-    *
-    *  if (hp == NULL)
-    *  {
-    *      printf("[Error] Gethostbyname Error Occurred.\n");
-    *      return 1;
-    *  }
-    *
-    *  addr = (struct in_addr *)(hp->h_addr);
-    *  printf("> IP Address: %s\n", inet_ntoa(*addr));
-    *
-    * ------------------------------------
-    *  ▲ gethostbyname を使用した接続方法 ▲
-    * ------------------------------------
-    */
-
     bzero((char *)&hints, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -291,20 +249,17 @@ int main(int argc, char **argv)
         printf("> %s\n", line);
 
         if (*line == '%')
-        {
             exec_command(line[1], &line[3]);
-        }
 
         int line_count = 1;
-        char *ret[FILE_LINE_SIZE] = {0}, sep_line = '\n';
+        char *ret[FILE_LINE_SIZE] = {0};
 
         if (is_reading)
-            line_count = split(file_buf, ret, sep_line, FILE_LINE_SIZE) - 1;
+            line_count = split(file_buf, ret, '\n', FILE_LINE_SIZE) - 1;
 
         int i;
         for (i = 0; i < line_count; i++)
         {
-
             if (is_reading)
                 strcpy(line, ret[i]);
 
@@ -337,9 +292,9 @@ int main(int argc, char **argv)
                     return -1;
                 }
 
-                char *ret[2] = {0}, sep_line = EOF;
+                char *ret_eof[2] = {0};
 
-                int has_eof = split(buf, ret, sep_line, 2) - 1;
+                int has_eof = split(buf, ret_eof, EOF, 2) - 1;
                 if (has_eof)
                     subst(buf, EOF, '\0');
 
@@ -347,9 +302,7 @@ int main(int argc, char **argv)
                     printf("> Message Received Successfully.（%d bytes）\n\n", recv_size);
                 if (is_writing)
                 {
-                    // int buf_size = buf[strlen(buf) - 1] == '\0' || buf[strlen(buf) - 1] == '\n' ? strlen(buf) - 2 : strlen(buf);
-                    int w = write(fd_w, buf, strlen(buf));
-                    if (w == -1)
+                    if (write(fd_w, buf, strlen(buf)) == -1)
                     {
                         printf("[Error] File Write Error\n");
                         is_writing = false;
@@ -361,7 +314,6 @@ int main(int argc, char **argv)
                     if (!is_reading || i == line_count - 1)
                         printf("%s", buf);
                 }
-                // if (strlen(buf) < SEND_SIZE)
                 if (has_eof)
                     break;
             }

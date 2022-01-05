@@ -9,12 +9,10 @@
 #include <netdb.h>
 #include <unistd.h>
 
-#define BUF_SIZE 9216 /* Maximum characters per line */
-#define SEND_SIZE 10000
-#define FILE_BUF_SIZE 507860
-#define FILE_LINE_SIZE 10000
-
-bool swap_pointer = false; /* Whether to use pointer in swap function */
+#define BUF_SIZE 9216        /* Maximum characters per line */
+#define SEND_SIZE 10000      /* Maximum characters to send */
+#define FILE_BUF_SIZE 507860 /* Maximum characters to read from a file */
+#define FILE_LINE_SIZE 10000 /* Maximum lines to read from a file */
 
 /*
 * Overview: Structure for specifying date.
@@ -70,21 +68,6 @@ void make_profile_shadow(struct profile data_store[], struct profile *shadow[], 
 }
 
 /*
-* Overview: Swap elements in profile_data_store array using pointer.
-* @argument: {struct profile*} source - Replacement source.
-* @argument: {struct profile*} destination - Replace destination.
-* @return: No return
-*/
-void swap_p(struct profile **source, struct profile **destination)
-{
-    struct profile *tmp;
-
-    tmp = *source;
-    *source = *destination;
-    *destination = tmp;
-}
-
-/*
 * Overview: Swap elements in profile_data_store array.
 * @argument: {struct profile*} source - Replacement source.
 * @argument: {struct profile*} destination - Replace destination.
@@ -120,10 +103,7 @@ void quicksort_id(int low, int high)
             while (profile_data_store_ptr[j]->id > x)
                 j -= 1;
             if (i <= j)
-                if (swap_pointer)
-                    swap_p(&profile_data_store_ptr[i++], &profile_data_store_ptr[j--]);
-                else
-                    swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
+                swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
             else
                 ;
         }
@@ -155,10 +135,7 @@ void quicksort_name(int low, int high)
             while (strcmp(profile_data_store_ptr[j]->name, x) > 0)
                 j -= 1;
             if (i <= j)
-                if (swap_pointer)
-                    swap_p(&profile_data_store_ptr[i++], &profile_data_store_ptr[j--]);
-                else
-                    swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
+                swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
             else
                 ;
         }
@@ -203,10 +180,7 @@ void quicksort_birthday(int low, int high)
             while (compare_date(&profile_data_store_ptr[j]->birthday, &x) > 0)
                 j -= 1;
             if (i <= j)
-                if (swap_pointer)
-                    swap_p(&profile_data_store_ptr[i++], &profile_data_store_ptr[j--]);
-                else
-                    swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
+                swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
             else
                 ;
         }
@@ -238,10 +212,7 @@ void quicksort_address(int low, int high)
             while (strcmp(profile_data_store_ptr[j]->address, x) > 0)
                 j -= 1;
             if (i <= j)
-                if (swap_pointer)
-                    swap_p(&profile_data_store_ptr[i++], &profile_data_store_ptr[j--]);
-                else
-                    swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
+                swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
             else
                 ;
         }
@@ -273,10 +244,7 @@ void quicksort_note(int low, int high)
             while (strcmp(profile_data_store_ptr[j]->note, x) > 0)
                 j -= 1;
             if (i <= j)
-                if (swap_pointer)
-                    swap_p(&profile_data_store_ptr[i++], &profile_data_store_ptr[j--]);
-                else
-                    swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
+                swap(profile_data_store_ptr[i++], profile_data_store_ptr[j--]);
             else
                 ;
         }
@@ -303,7 +271,7 @@ void upper(char *string)
 * Overview: Search by partial match.
 * @argument: {char *} string - string to search.
 * @argument: {char *} find - string to find.
-* @return: No return
+* @return: {int} Whether there is recursion.
 */
 int match(char *string, char *find)
 {
@@ -337,7 +305,6 @@ int match(char *string, char *find)
 char *cmd_check(char cmd)
 {
     sprintf(message, ">> %d profile(s)\n\n", profile_data_nitems);
-
     return message;
 }
 
@@ -413,33 +380,9 @@ char *cmd_print(char cmd, char *param)
 }
 
 /*
-* Overview: Read data and register in array.
-* @argument: {char} cmd - Command alphabet.
-* @argument: {char *} param - Command argument.
-* @return: No return
-*/
-void cmd_read(char cmd, char *param)
-{
-    char line[BUF_SIZE + 1];
-    fp = fopen(param, "r");
-    if (fp != NULL)
-    {
-        while (get_line(line))
-        {
-            parse_line(line);
-        }
-    }
-    else
-    {
-        fprintf(stderr, "Entered file cannot be opened.\n");
-    }
-    fclose(fp);
-}
-
-/*
 * Overview: Export registered data.
 * @argument: {char} cmd - Command alphabet.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
 char *cmd_write(char cmd)
 {
@@ -531,9 +474,9 @@ char *cmd_sort(char cmd, char *param)
 * Overview: Output partial match data in array.
 * @argument: {char} cmd - Command alphabet.
 * @argument: {char *} param - Command argument.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
-void cmd_match(char cmd, char *param)
+char *cmd_match(char cmd, char *param)
 {
     int i;
     for (i = 0; i < profile_data_nitems; i++)
@@ -552,20 +495,29 @@ void cmd_match(char cmd, char *param)
 
         if (match(string[0], find) || match(string[1], find))
         {
-            printf("Id    : %d\n", profile_data_store_ptr[i]->id);
-            printf("Name  : %s\n", profile_data_store_ptr[i]->name);
-            printf("Birth : %04d-%02d-%02d\n", profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d);
-            printf("Addr. : %s\n", profile_data_store_ptr[i]->address);
-            printf("Comm. : %s\n\n", profile_data_store_ptr[i]->note);
+            char tmp[1024] = {0};
+            sprintf(tmp, ">> Id    : %d\n", profile_data_store_ptr[i]->id);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Name  : %s\n", profile_data_store_ptr[i]->name);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Birth : %04d-%02d-%02d\n", profile_data_store_ptr[i]->birthday.y, profile_data_store_ptr[i]->birthday.m, profile_data_store_ptr[i]->birthday.d);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Addr. : %s\n", profile_data_store_ptr[i]->address);
+            strcat(message, tmp);
+            sprintf(tmp, ">> Comm. : %s\n\n", profile_data_store_ptr[i]->note);
+            strcat(message, tmp);
         }
     }
+    if (!*message)
+        sprintf(message, "No Result for \"%s\".\n\n", param);
+    return message;
 }
 
 /*
 * Overview: Calls functions when the command is input.
 * @argument: {char} cmd - Command alphabet.
 * @argument: {char *} param - Command argument.
-* @return: No return
+* @return: {char *} Response Pointer.
 */
 char *exec_command(char cmd, char *param)
 {
@@ -587,9 +539,6 @@ char *exec_command(char cmd, char *param)
     case 'P':
         return cmd_print(cmd, param);
         break;
-    // case 'R':
-    //     cmd_read(cmd, param);
-    //     break;
     case 'W':
         return cmd_write(cmd);
         break;
@@ -599,9 +548,9 @@ char *exec_command(char cmd, char *param)
     case 'S':
         return cmd_sort(cmd, param);
         break;
-    // case 'M':
-    //     cmd_match(cmd, param);
-    //     break;
+    case 'M':
+        return cmd_match(cmd, param);
+        break;
     default:
         sprintf(message, ">> Unregistered Command is Entered.\n\n");
         return message;
@@ -742,6 +691,8 @@ char *parse_line(char *line)
 
 int main(void)
 {
+    make_profile_shadow(profile_data_store, profile_data_store_ptr, FILE_LINE_SIZE);
+
     int sock;
     struct sockaddr_in sa;
 
@@ -771,9 +722,9 @@ int main(void)
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
     sa.sin_port = htons((uint16_t)8080);
 
-    int yes = 1;
+    int optval = 1;
 
-    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&yes, sizeof(yes)) < 0)
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, (const char *)&optval, sizeof(optval)) < 0)
     {
         perror("[Error] SetSockOpt Error Occurred.\n");
         close(sock);
@@ -847,19 +798,8 @@ int main(void)
             * ================================
             */
 
-            make_profile_shadow(profile_data_store, profile_data_store_ptr, FILE_LINE_SIZE);
-            // char line[BUF_SIZE + 1];
-
-            // while (get_line(line, buf))
-            // parse_line(buf);
             char *response = parse_line(buf);
             printf("\n%s\n", response);
-
-            // char *res_p;
-            // res_p = response;
-            // while (*res_p)
-            //     res_p++;
-            // *res_p = EOF;
 
             response[strlen(response)] = EOF;
 
@@ -884,7 +824,6 @@ int main(void)
                 }
                 else
                 {
-                    // strcat(response, -1);
                     if (send(new_sock, (const void *)response, strlen(response), 0) == -1)
                     {
                         printf("[Error] Send Error Occurred.\n");
@@ -899,7 +838,6 @@ int main(void)
 
             printf("> Message Sent Successfully.\n");
 
-            // message[0] = '\0';
             memset(message, 0, sizeof(message));
         }
         close(new_sock);
