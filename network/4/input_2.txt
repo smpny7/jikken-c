@@ -1,0 +1,7 @@
+%R sample.csv
+%S 3
+%P 0
+%C
+%F Okayama Univ
+%W output.csv
+%D
