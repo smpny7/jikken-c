@@ -1,5 +1,6 @@
 %{
-#include "main.tab.h"
+#include "ast.h"
+#include "parse.tab.h"
 %}
 %%
 "define"                return DEFINE;
@@ -22,8 +23,8 @@
 "=="                    return EQ;
 "<"                     return LT;
 ">"                     return GT;
--?[1-9][0-9]*|0         return NUMBER;
-[a-zA-Z][a-zA-Z0-9]*    return IDENT;
+-?[1-9][0-9]*|0         {yylval.ival = atoi(yytext); return NUMBER;}
+[a-zA-Z][a-zA-Z0-9]*    {yylval.sp = yytext; return IDENT;}
 [\t ]                   ; /* ignore whitespace */
 \n                      ; /* ignore whitespace */
 %%

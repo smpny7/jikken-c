@@ -1,9 +1,9 @@
 CC = gcc
 CFLAGS = -O -Wall
-LEX = flex
+LEX = flex -d
 YACC = bison -d
 HDRS = parse.tab.h
-LDFLAGS = -lfl -ly
+LDFLAGS = -DYYERROR_VERBOSE -lfl -ly
 LIBS =
 OBJS = parse.tab.o lex.yy.o ast.o
 PROGRAM = main
@@ -18,7 +18,7 @@ lex.yy.c: lex.l
 parse.tab.c: parse.y
 	$(YACC) parse.y
 
-clean:; rm -f *.o *~ parse.tab*
+clean:; rm -f *.o *~ parse.tab* lex.yy.c main
 
 ###
 ast.o: ast.c ast.h
