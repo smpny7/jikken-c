@@ -2,6 +2,8 @@
 #include "ast.h"
 #include "parse.tab.h"
 %}
+%option noinput
+%option nounput
 %%
 "define"                return DEFINE;
 "array"                 return ARRAY;
@@ -24,7 +26,7 @@
 "<"                     return LT;
 ">"                     return GT;
 -?[1-9][0-9]*|0         {yylval.ival = atoi(yytext); return NUMBER;}
-[a-zA-Z][a-zA-Z0-9]*    {yylval.sp = yytext; return IDENT;}
+[a-zA-Z][a-zA-Z0-9]*    {yylval.sp = (char*)malloc(sizeof(char) * yyleng); strncpy(yylval.sp, yytext, yyleng); return IDENT;}
 [\t ]                   ; /* ignore whitespace */
 \n                      ; /* ignore whitespace */
 %%

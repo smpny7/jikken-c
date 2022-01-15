@@ -1,0 +1,10 @@
+{
+    "files.associations": {
+        "string.h": "c"
+    },
+    "cSpell.words": [
+        "yyerror",
+        "yylex",
+        "yyparse"
+    ]
+}

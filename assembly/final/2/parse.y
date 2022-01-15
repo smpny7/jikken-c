@@ -10,11 +10,13 @@ extern int yyerror();
     int ival; // 数
     char* sp; // 変数名
 }
-%token DEFINE ARRAY WHILE IF ELSE SEMIC L_BRACKET R_BRACKET L_PARAN R_PARAN L_BRACE R_BRACE ASSIGN ADD SUB MUL DIV EQ LT GT IDENT NUMBER
+%token DEFINE ARRAY WHILE IF ELSE SEMIC L_BRACKET R_BRACKET L_PARAN R_PARAN L_BRACE R_BRACE ASSIGN ADD SUB MUL DIV EQ LT GT
+%token <sp> IDENT
+%token <ival> NUMBER
 // %type <np> expression term factor condition var
 %type <np> declarations statements decl_statement statement assignment_stmt expression term factor condition var loop_stmt cond_stmt
-%type <sp> IDENT
-%type <ival> NUMBER
+// %type <sp> IDENT
+// %type <ival> NUMBER
 %%
 /* <プログラム> ::= <変数宣言部> <文集合> */
 program :
@@ -29,9 +31,9 @@ declarations : decl_statement declarations
         $$ = build_node2(Decls_AST, $1, $2);
     }
     | decl_statement // TODO いらない？
-    // {
-        // $$ = build_node2(Decls_AST, $1, NULL);
-    // }
+    {
+        $$ = build_node1(Decls_AST, $1);
+    }
 ;
 /* <宣言文> ::= define <識別子>; | array <識別子> [ <数> ]; */
 decl_statement : DEFINE IDENT SEMIC
@@ -49,23 +51,23 @@ statements :
         $$ = build_node2(Stats_AST, $1, $2);
     }
     | statement // TODO いらない？
-    // {
-        // $$ = build_node2(Stats_AST, $1, NULL);
-    // }
+    {
+        $$ = build_node1(Stats_AST, $1);
+    }
 ;
 /* <文> ::= <代入文> | <ループ文> | <条件分岐文> */
 statement : assignment_stmt // TODO いらない？
-    // {
-        // $$ = build_node2(Stat_AST, $1, NULL);
-    // }
+    {
+        $$ = build_node1(Stat_AST, $1);
+    }
     | loop_stmt // TODO いらない？
-    // {
-        // $$ = build_node2(Stat_AST, $1, NULL);
-    // }
+    {
+        $$ = build_node1(Stat_AST, $1);
+    }
     | cond_stmt // TODO いらない？
-    // {
-        // $$ = build_node2(Stat_AST, $1, NULL);
-    // }
+    {
+        $$ = build_node1(Stat_AST, $1);
+    }
 ;
 /* <代入文> ::= <識別子> = <算術式>; | <識別子> [ <数> ] = <算術式>; */
 assignment_stmt : IDENT ASSIGN expression SEMIC
@@ -84,7 +86,7 @@ expression : expression add_op term
     }
     | term // TODO いらない？
     // {
-        // $$ = build_node2(Add_AST, $1, NULL);
+    //     $$ = build_node1(Add_AST, $1);
     // }
 ;
 /* <項> ::= <項> <乗除演算子> <因子> | <因子> */
@@ -93,12 +95,15 @@ term : term mul_op factor
         $$ = build_node2(Mul_AST, $1, $3);
     }
     | factor // TODO いらない？
+    // {
+    //     $$ = build_node1(Mul_AST, $1);
+    // }
 ;
 /* <因子> ::= <変数> | (<算術式>) */
 factor : var // TODO いらない？
     | L_PARAN expression R_PARAN
     {
-        $$ = $2;
+        $$ = build_node1(Factor_AST, $2);
     }
 ;
 /* <加減演算子> ::= + | - */

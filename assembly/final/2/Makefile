@@ -17,8 +17,10 @@ lex.yy.c: lex.l
 	$(LEX) lex.l
 parse.tab.c: parse.y
 	$(YACC) parse.y
-
-clean:; rm -f *.o *~ parse.tab* lex.yy.c main
+ast.o: ast.c ast.h
 
 ###
-ast.o: ast.c ast.h
+
+test:; ./main < test.c
+
+clean:; rm -f *.o *~ parse.tab* lex.yy.c main
