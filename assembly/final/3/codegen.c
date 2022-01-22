@@ -5,6 +5,20 @@
 
 extern int yyerror();
 
+typedef unsigned int Reg;
+
+typedef struct three_addr ThreeAddr;
+typedef struct three_addr
+{
+    NodeType nType;
+    Reg result;
+    Reg r_opd1;
+    Reg r_opd2;
+    Node *n_opd1;
+    Node *n_opd2;
+    ThreeAddr *next;
+} ThreeAddr;
+
 typedef struct array_index ArrayIndex;
 typedef struct array_index
 {
@@ -22,10 +36,65 @@ typedef struct symbol_table
     ArrayIndex *index;
 } Symbol;
 
+char *n_type[] = { // TODO: Debug
+    "Pro_AST",
+    "Decls_AST",
+    "Stats_AST",
+    "Define_AST",
+    "Array_AST",
+    "Ident_AST",
+    "Number_AST",
+    "ArrayEl_AST",
+    "ArrayIndex_AST",
+    "Assign_AST",
+    "While_AST",
+    "For_AST",
+    "If_AST",
+    "Add_AST",
+    "Sub_AST",
+    "Mul_AST",
+    "Div_AST",
+    "Mod_AST",
+    "Eq_AST",
+    "LtoE_AST",
+    "GtoE_AST",
+    "Lt_AST",
+    "Gt_AST",
+    "Pre_Increment_AST",
+    "Pre_Decrement_AST",
+    "Post_Increment_AST",
+    "Post_Decrement_AST"};
+
 void exploreStatsTree(Node *np, Symbol *symbolTable);
 
 int symbol_offset = 0;
 int while_label_cnt = 0;
+Reg reg_cnt = 1;
+
+void printTA(ThreeAddr *ta)
+{
+    printf("=================\n");
+    printf("type: %s\n", n_type[ta->nType]);
+    printf("result: %d\n", ta->result);
+    printf("r_opd1: %d\n", ta->r_opd1);
+    printf("r_opd2: %d\n", ta->r_opd2);
+    if (ta->n_opd1 != NULL)
+        printf("n_opd1: %s\n", n_type[ta->n_opd1->nType]);
+    if (ta->n_opd1 != NULL && ta->n_opd1->value)
+        printf("value: %d\n", ta->n_opd1->value);
+    if (ta->n_opd1 != NULL && ta->n_opd1->varName != NULL)
+        printf("varName: %s\n", ta->n_opd1->varName);
+    if (ta->n_opd2 != NULL)
+        printf("n_opd2: %s\n", n_type[ta->n_opd2->nType]);
+    if (ta->n_opd2 != NULL && ta->n_opd2->value)
+        printf("value: %d\n", ta->n_opd2->value);
+    if (ta->n_opd2 != NULL && ta->n_opd2->varName != NULL)
+        printf("varName: %s\n", ta->n_opd2->varName);
+    printf("=================\n\n");
+
+    if (ta->next != NULL)
+        printTA(ta->next);
+}
 
 void printIP(ArrayIndex *ip)
 {
@@ -48,6 +117,16 @@ void printSP(Symbol *sp)
     if (sp->next != NULL)
         printSP(sp->next);
 }
+
+int isExpressionNode(Node *np)
+{
+    return np->nType == Add_AST || np->nType == Sub_AST || np->nType == Mul_AST || np->nType == Div_AST || np->nType == Mod_AST;
+}
+
+// int isTerminalSymbol(Node *np)
+// {
+//     return np->nType == Ident_AST || np->nType == Number_AST || np->nType == ArrayEl_AST;
+// }
 
 void printInitialize()
 {
@@ -98,6 +177,144 @@ int getArraySize(ArrayIndex *ip)
     return ip->size;
 }
 
+ArrayIndex *arrayIndexListAdd(ArrayIndex *ip, int size)
+{
+    ArrayIndex *n_ip;
+    if ((n_ip = (ArrayIndex *)malloc(sizeof(ArrayIndex))) == NULL)
+        yyerror("out of memory");
+
+    n_ip->size = size;
+    n_ip->next = NULL;
+
+    if (ip == NULL)
+        return n_ip;
+
+    ArrayIndex *ip_end = ip;
+    while (ip_end->next != NULL)
+        ip_end = ip_end->next;
+    ip_end->next = n_ip;
+    return ip;
+}
+
+ThreeAddr *threeAddrListAdd(ThreeAddr *tp, NodeType nType, Reg result, Reg r_opd1, Reg r_opd2, Node *n_opd1, Node *n_opd2)
+{
+    ThreeAddr *n_tp;
+    if ((n_tp = (ThreeAddr *)malloc(sizeof(ThreeAddr))) == NULL)
+        yyerror("out of memory");
+
+    n_tp->nType = nType;
+    n_tp->result = result;
+    n_tp->r_opd1 = r_opd1;
+    n_tp->r_opd2 = r_opd2;
+    n_tp->n_opd1 = n_opd1;
+    n_tp->n_opd2 = n_opd2;
+    n_tp->next = NULL;
+
+    if (tp == NULL)
+        return n_tp;
+
+    ThreeAddr *tp_end = tp;
+    while (tp_end->next != NULL)
+        tp_end = tp_end->next;
+    tp_end->next = n_tp;
+    return tp;
+}
+
+Symbol *symbolListAdd(Symbol *sp, char *varName, int offset, int size, ArrayIndex *ip)
+{
+    Symbol *n_sp;
+    if ((n_sp = (Symbol *)malloc(sizeof(Symbol))) == NULL)
+        yyerror("out of memory");
+
+    // TODO: ポインタだけでOK
+    // n_sp->varName = (char *)malloc(MAXBUF);
+    // strncpy(n_sp->varName, varName, MAXBUF);
+
+    n_sp->varName = varName;
+
+    n_sp->offset = offset;
+    n_sp->size = size;
+    n_sp->next = NULL;
+    n_sp->index = ip;
+
+    if (sp == NULL)
+        return n_sp;
+
+    Symbol *sp_end = sp;
+    while (sp_end->next != NULL)
+        sp_end = sp_end->next;
+    sp_end->next = n_sp;
+    return sp;
+}
+
+ArrayIndex *exploreArrayTree(Node *np, ArrayIndex *ip)
+{
+    if (np->nType == ArrayIndex_AST && np->child->value)
+        ip = arrayIndexListAdd(ip, np->child->value);
+
+    if (np->child != NULL)
+        ip = exploreArrayTree(np->child, ip);
+    if (np->brother != NULL)
+        ip = exploreArrayTree(np->brother, ip);
+
+    return ip;
+}
+
+ThreeAddr *exploreExpressionTree(Node *np, ThreeAddr *tp)
+{
+    if (np->child != NULL)
+        tp = exploreExpressionTree(np->child, tp);
+
+    if (isExpressionNode(np))
+    {
+        int has_left_expression_node = isExpressionNode(np->child);
+        int has_right_expression_node = isExpressionNode(np->child->brother);
+        tp = threeAddrListAdd(tp, np->nType, reg_cnt, has_left_expression_node ? reg_cnt + 1 : 0, has_right_expression_node ? reg_cnt + has_left_expression_node + 1 : 0, !has_left_expression_node ? np->child : NULL, !has_right_expression_node ? np->child->brother : NULL);
+        reg_cnt += has_left_expression_node + has_right_expression_node + 1;
+    }
+
+    if (np->brother != NULL)
+        tp = exploreExpressionTree(np->brother, tp);
+
+    return tp;
+}
+
+Symbol *exploreDeclsTree(Node *np, Symbol *sp)
+{
+    ArrayIndex *ip = NULL;
+
+    switch (np->nType)
+    {
+    case Define_AST:
+        printf("\t.word 10\t\t# %s\n", np->child->varName);
+
+        sp = symbolListAdd(sp, np->child->varName, symbol_offset, 1, NULL);
+        symbol_offset += 4;
+        break;
+
+    case Array_AST:
+        ip = exploreArrayTree(np, ip);
+        // printIP(ip);
+        int array_size = getArraySize(ip);
+
+        printf("\t.space %d\t\t# %s\n", array_size * 4, np->child->varName);
+
+        sp = symbolListAdd(sp, np->child->varName, symbol_offset, array_size, ip);
+        symbol_offset += 4 * array_size;
+        break;
+
+    default:
+        break;
+    }
+
+    if (np->child != NULL)
+        sp = exploreDeclsTree(np->child, sp);
+    if (np->brother != NULL)
+        sp = exploreDeclsTree(np->brother, sp);
+
+    return sp;
+}
+
 /*
 • 代入文
 • ループ文
@@ -105,6 +322,14 @@ int getArraySize(ArrayIndex *ip)
 • 算術式　—- 別資料「算術式のコード生成」を参照のこと
 • 条件式
 */
+
+void genExpression(Node *np, Symbol *symbolTable)
+{
+    ThreeAddr *threeAddrTable = NULL;
+    threeAddrTable = exploreExpressionTree(np, threeAddrTable);
+
+    printTA(threeAddrTable);
+}
 
 void genCondition(Node *np, Symbol *symbolTable, char *label)
 {
@@ -161,101 +386,6 @@ void genWhileLoop(Node *np, Symbol *symbolTable)
     printf("$WHILE%d_EXIT:\n", n_while_label_cnt);
 }
 
-ArrayIndex *indexListAdd(ArrayIndex *ip, int size)
-{
-    ArrayIndex *n_ip;
-    if ((n_ip = (ArrayIndex *)malloc(sizeof(ArrayIndex))) == NULL)
-        yyerror("out of memory");
-
-    n_ip->size = size;
-    n_ip->next = NULL;
-
-    if (ip == NULL)
-        return n_ip;
-
-    ArrayIndex *ip_end = ip;
-    while (ip_end->next != NULL)
-        ip_end = ip_end->next;
-    ip_end->next = n_ip;
-    return ip;
-}
-
-Symbol *symbolListAdd(Symbol *sp, char *varName, int offset, int size, ArrayIndex *ip)
-{
-    Symbol *n_sp;
-    if ((n_sp = (Symbol *)malloc(sizeof(Symbol))) == NULL)
-        yyerror("out of memory");
-
-    // TODO: ポインタだけでOK
-    // n_sp->varName = (char *)malloc(MAXBUF);
-    // strncpy(n_sp->varName, varName, MAXBUF);
-
-    n_sp->varName = varName;
-
-    n_sp->offset = offset;
-    n_sp->size = size;
-    n_sp->next = NULL;
-    n_sp->index = ip;
-
-    if (sp == NULL)
-        return n_sp;
-
-    Symbol *sp_end = sp;
-    while (sp_end->next != NULL)
-        sp_end = sp_end->next;
-    sp_end->next = n_sp;
-    return sp;
-}
-
-ArrayIndex *exploreArrayTree(Node *np, ArrayIndex *ip)
-{
-    if (np->nType == ArrayIndex_AST && np->child->value)
-        ip = indexListAdd(ip, np->child->value);
-
-    if (np->child != NULL)
-        ip = exploreArrayTree(np->child, ip);
-    if (np->brother != NULL)
-        ip = exploreArrayTree(np->brother, ip);
-
-    return ip;
-}
-
-Symbol *exploreDeclsTree(Node *np, Symbol *sp)
-{
-    ArrayIndex *ip = NULL;
-
-    switch (np->nType)
-    {
-    case Define_AST:
-        printf("\t.word 10\t\t# %s\n", np->child->varName);
-
-        sp = symbolListAdd(sp, np->child->varName, symbol_offset, 1, NULL);
-        symbol_offset += 4;
-        break;
-
-    case Array_AST:
-        ip = exploreArrayTree(np, ip);
-        // printIP(ip);
-        int array_size = getArraySize(ip);
-
-        printf("\t.space %d\t\t# %s\n", array_size * 4, np->child->varName);
-
-        sp = symbolListAdd(sp, np->child->varName, symbol_offset, array_size, ip);
-        symbol_offset += 4 * array_size;
-        break;
-
-    default:
-        break;
-    }
-
-    if (np->child != NULL)
-        sp = exploreDeclsTree(np->child, sp);
-    if (np->brother != NULL)
-        sp = exploreDeclsTree(np->brother, sp);
-
-    return sp;
-}
-
 void exploreStatsTree(Node *np, Symbol *symbolTable)
 {
     switch (np->nType)
@@ -263,11 +393,23 @@ void exploreStatsTree(Node *np, Symbol *symbolTable)
     case Assign_AST:
         genAssignment(np, symbolTable);
         break;
+
     case While_AST:
         genWhileLoop(np, symbolTable);
         if (np->brother != NULL)
             exploreStatsTree(np->brother, symbolTable);
         return;
+
+    case Add_AST:
+    case Sub_AST:
+    case Mul_AST:
+    case Div_AST:
+    case Mod_AST:
+        genExpression(np, symbolTable);
+        if (np->brother != NULL)
+            exploreStatsTree(np->brother, symbolTable);
+        return;
+
     default:
         break;
     }
@@ -283,7 +425,6 @@ int codegen(Node *top)
     Symbol *symbolTable = NULL;
 
     printInitialize();
-    // genDataSegment(top->child);
 
     printf("\t#\n");
     printf("\t# data segment\n");
