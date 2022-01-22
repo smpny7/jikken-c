@@ -8,6 +8,8 @@ extern int yylex();
 extern int yyerror();
 extern int yyparse();
 
+extern int codegen();
+
 #define IS_DEBUG 1
 
 /*
@@ -22,7 +24,7 @@ Node *build_node1(NodeType nType, Node *np1)
     if ((np = (Node *)malloc(sizeof(Node))) == NULL)
         yyerror("out of memory");
     np->nType = nType;
-    np->child = (struct Node *)np1;
+    np->child = np1;
     np->brother = NULL;
     return np;
 }
@@ -40,8 +42,8 @@ Node *build_node2(NodeType nType, Node *np1, Node *np2)
     if ((np = (Node *)malloc(sizeof(Node))) == NULL)
         yyerror("out of memory");
     np->nType = nType;
-    np->child = (struct Node *)np1;
-    np1->brother = (struct Node *)np2;
+    np->child = np1;
+    np1->brother = np2;
     np->brother = NULL;
     return np;
 }
@@ -60,9 +62,9 @@ Node *build_node3(NodeType nType, Node *np1, Node *np2, Node *np3)
     if ((np = (Node *)malloc(sizeof(Node))) == NULL)
         yyerror("out of memory");
     np->nType = nType;
-    np->child = (struct Node *)np1;
-    np1->brother = (struct Node *)np2;
-    np2->brother = (struct Node *)np3;
+    np->child = np1;
+    np1->brother = np2;
+    np2->brother = np3;
     np->brother = NULL;
     return np;
 }
@@ -82,10 +84,10 @@ Node *build_node4(NodeType nType, Node *np1, Node *np2, Node *np3, Node *np4)
     if ((np = (Node *)malloc(sizeof(Node))) == NULL)
         yyerror("out of memory");
     np->nType = nType;
-    np->child = (struct Node *)np1;
-    np1->brother = (struct Node *)np2;
-    np2->brother = (struct Node *)np3;
-    np3->brother = (struct Node *)np4;
+    np->child = np1;
+    np1->brother = np2;
+    np2->brother = np3;
+    np3->brother = np4;
     np->brother = NULL;
     return np;
 }
@@ -142,7 +144,7 @@ Node *build_array_node(NodeType nType, char *varName, Node *np1)
     np->nType = nType;
     np->varName = (char *)malloc(MAXBUF);
     strncpy(np->varName, varName, MAXBUF);
-    np->child = (struct Node *)np1;
+    np->child = np1;
     np->brother = NULL;
     return np;
 }
@@ -166,13 +168,13 @@ void printTree(Node *np)
     if (np->child != NULL)
     {
         printf("(");
-        printTree((Node *)np->child);
+        printTree(np->child);
         printf(")");
     }
     if (np->brother != NULL)
     {
         printf("{");
-        printTree((Node *)np->brother);
+        printTree(np->brother);
         printf("}");
     }
 }
@@ -194,5 +196,5 @@ int main(void)
         printf("\n");
     }
 
-    return 0;
+    return codegen(top);
 }
