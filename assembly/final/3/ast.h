@@ -1,5 +1,8 @@
 #define MAXBUF 80
 
+typedef unsigned int Reg;
+typedef unsigned int VRReg;
+
 typedef enum
 {
     Pro_AST,   // プログラムのノード型
@@ -53,6 +56,7 @@ typedef struct abstract_node
     NodeType nType;
     char *varName; // IDENT の場合その変数名を入れる
     int value;     // NUMBERの値や配列の添え字の値を入れる
+    VRReg reg;
     Node *child;
     Node *brother;
 } Node;

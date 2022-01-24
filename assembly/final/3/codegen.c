@@ -5,8 +5,6 @@
 
 extern int yyerror();
 
-typedef unsigned int Reg;
-
 typedef struct three_addr ThreeAddr;
 typedef struct three_addr
 {
@@ -69,7 +67,170 @@ void exploreStatsTree(Node *np, Symbol *symbolTable);
 
 int symbol_offset = 0;
 int while_label_cnt = 0;
-Reg reg_cnt = 1;
+Reg reg_serial_num = 0;
+Reg vr_reg_end = 0;
+
+#define MAX_REG 3     /* 一時的な変数に割り当てるレジスタ数 */
+#define MAX_VR_REG 80 /* 一時的な変数の退避領域の数 */
+#define NO_UNUSED_REG -1
+
+char *regName[MAX_REG] = {"$t0", "$t1", "$t2"};
+int regState[MAX_REG];      /* 実レジスタに割り当てられている仮想レジスタ */
+int vrRegState[MAX_VR_REG]; /* 退避領域にある仮想レジスタ */
+
+void initTmpReg()
+{
+    int i;
+    for (i = 0; i < MAX_REG; i++)
+        regState[i] = -1;
+    for (i = 0; i < MAX_VR_REG; i++)
+        vrRegState[i] = -1;
+}
+
+Reg getReg(VRReg vr_reg)
+{
+    int i;
+    for (i = 0; i < MAX_REG; i++)
+    {
+        if (regState[i] < 0)
+        {
+            // printf("(1)regState[%d] <- %d\n", i, vr_reg);
+            regState[i] = vr_reg;
+            return i;
+        }
+    }
+    return NO_UNUSED_REG;
+}
+
+void saveReg(Reg reg)
+{
+    int i;
+    printf("\nsaveReg Pass because REG=-1: %d\n\n", regState[reg] < 0);
+
+    if (regState[reg] < 0)
+        return;
+    for (i = 0; i < MAX_VR_REG; i++)
+    {
+        if (vrRegState[i] < 0)
+        {
+            printf("\tsw\t%s,%d($sp)\n", regName[reg], -++vr_reg_end * 4);
+            vrRegState[i] = regState[reg];
+            regState[reg] = -1;
+            return;
+        }
+    }
+    printf("no temp save\n");
+}
+
+/* assign r to reg */
+void assignReg(VRReg vr_reg, Reg reg)
+{
+    if (regState[reg] == vr_reg)
+        return;
+    saveReg(reg);
+    // printf("(2)regState[%d] <- %d\n", reg, vr_reg);
+    regState[reg] = vr_reg;
+}
+
+Reg useReg(VRReg vr_reg)
+{
+    // printf("useReg: vr_reg=%d\n", vr_reg);
+    int i, j;
+    Reg rr;
+
+    for (i = 0; i < MAX_REG; i++)
+    {
+        if (regState[i] == vr_reg)
+            return i;
+    }
+    /* not found in register, then restore from save area. */
+    for (i = 0; i < MAX_VR_REG; i++)
+    {
+        if (vrRegState[i] == vr_reg)
+        {
+            rr = getReg(vr_reg);
+            if (rr == NO_UNUSED_REG)
+            {
+                printf("\nSAVEREG\n\n");
+                VRReg min_vr_reg = MAX_VR_REG;
+                Reg saveable_rg = 0;
+                for (j = 0; j < MAX_VR_REG; j++)
+                    if (vrRegState[j] < min_vr_reg)
+                        saveable_rg = j;
+                saveReg(saveable_rg);
+                return useReg(vr_reg);
+            }
+            vrRegState[i] = -1;
+            /* load into regsiter */
+            printf("\tlw\t%s, %d($sp)\n", regName[rr], -vr_reg_end-- * 4);
+            return rr;
+        }
+    }
+    printf("reg is not found\n");
+    exit(1);
+}
+
+// void saveAllRegs()
+// {
+//     int i;
+//     for (i = 0; i < MAX_REG; i++)
+//         saveReg(i);
+// }
+
+void freeReg(int reg)
+{
+    regState[reg] = -1;
+}
+
+void initReg(ThreeAddr *ta)
+{
+    // int r_num, i;
+    // for (r_num = 0; r_num < MAX_REG; r_num++)
+    //     assignReg(r_num + 1, r_num);
+    // for (i = 0; r_num < reg_serial_num; i++)
+    // {
+    //     vrRegState[i] = r_num;
+    //     r_num++;
+    // }
+    int reg_num;
+    for (reg_num = 0; reg_num < reg_serial_num; reg_num++)
+    {
+        vrRegState[reg_num] = reg_num;
+    }
+}
+
+void addSaveReg(int r)
+{
+    int i;
+    // for (i = 0; i < MAX_REG; i++)
+    //     if (regState[i] == -1)
+    //     {
+    //         regState[i] = r;
+    //         return;
+    //     }
+    for (i = 0; i < MAX_VR_REG; i++)
+        if (vrRegState[i] == -1)
+        {
+            vrRegState[i] = r;
+            return;
+        }
+}
+
+void printREG()
+{
+    int i;
+    printf("=================\n");
+    printf("regState\n");
+    printf("=================\n");
+    for (i = 0; i < MAX_REG; i++)
+        printf("%d: %d\n", i, regState[i]);
+    printf("=================\n");
+    printf("vrRegState\n");
+    printf("=================\n");
+    for (i = 0; i < MAX_VR_REG; i++)
+        printf("%d: %d\n", i, vrRegState[i]);
+    printf("=================\n");
+}
 
 void printTA(ThreeAddr *ta)
 {
@@ -267,10 +428,15 @@ ThreeAddr *exploreExpressionTree(Node *np, ThreeAddr *tp)
 
     if (isExpressionNode(np))
     {
-        int has_left_expression_node = isExpressionNode(np->child);
-        int has_right_expression_node = isExpressionNode(np->child->brother);
-        tp = threeAddrListAdd(tp, np->nType, reg_cnt, has_left_expression_node ? reg_cnt + 1 : 0, has_right_expression_node ? reg_cnt + has_left_expression_node + 1 : 0, !has_left_expression_node ? np->child : NULL, !has_right_expression_node ? np->child->brother : NULL);
-        reg_cnt += has_left_expression_node + has_right_expression_node + 1;
+        int return_reg_num = reg_serial_num++;
+        int left_reg_num = isExpressionNode(np->child) ? np->child->reg ? np->child->reg : reg_serial_num++ : 0;
+        int right_reg_num = isExpressionNode(np->child->brother) ? np->child->brother->reg ? np->child->brother->reg : reg_serial_num++ : 0;
+
+        // int has_left_expression_node = isExpressionNode(np->child);
+        // int has_right_expression_node = isExpressionNode(np->child->brother);
+        tp = threeAddrListAdd(tp, np->nType, return_reg_num, left_reg_num, right_reg_num, !isExpressionNode(np->child) ? np->child : NULL, !isExpressionNode(np->child->brother) ? np->child->brother : NULL);
+        np->reg = return_reg_num;
+        // reg_serial_num += has_left_expression_node + has_right_expression_node + 1;
     }
 
     if (np->brother != NULL)
@@ -323,12 +489,105 @@ Symbol *exploreDeclsTree(Node *np, Symbol *sp)
 • 条件式
 */
 
-void genExpression(Node *np, Symbol *symbolTable)
+void genExpression(ThreeAddr *threeAddrTable)
 {
-    ThreeAddr *threeAddrTable = NULL;
-    threeAddrTable = exploreExpressionTree(np, threeAddrTable);
+    int i;
+    Reg r1, r2;
+    switch (threeAddrTable->nType)
+    {
+    case Add_AST:
+        if (threeAddrTable->n_opd1 != NULL)
+        {
+            threeAddrTable->r_opd1 = reg_serial_num;
+            addSaveReg(reg_serial_num++);
 
-    printTA(threeAddrTable);
+            r1 = getReg(threeAddrTable->r_opd1);
+            while (r1 == NO_UNUSED_REG)
+            {
+                for (i = 0; i < MAX_REG; i++)
+                    if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
+                        saveReg(i);
+                r1 = getReg(threeAddrTable->r_opd1);
+            }
+            printf("r1(%d)のレジスタインデックス: %d\n", threeAddrTable->r_opd1, r1);
+        }
+        else
+        {
+            printf("左子ノードの計算結果仮想レジスタを代入\n");
+            // printf("左子ノードの計算結果仮想レジスタを代入 (%d <- %d)\n", threeAddrTable->r_opd1, threeAddrTable->n_opd1->reg);
+            // threeAddrTable->r_opd1 = threeAddrTable->n_opd1->reg;
+
+            r1 = useReg(threeAddrTable->r_opd1);
+            while (r1 == NO_UNUSED_REG)
+            {
+                for (i = 0; i < MAX_REG; i++)
+                    if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
+                        saveReg(i);
+                r1 = getReg(threeAddrTable->r_opd1);
+            }
+        }
+        if (threeAddrTable->n_opd2 != NULL)
+        {
+            threeAddrTable->r_opd2 = reg_serial_num;
+            addSaveReg(reg_serial_num++);
+            r2 = getReg(threeAddrTable->r_opd2);
+
+            while (r2 == NO_UNUSED_REG)
+            {
+                for (i = 0; i < MAX_REG; i++)
+                    if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
+                        saveReg(i);
+                r2 = getReg(threeAddrTable->r_opd2);
+            }
+            printf("r2(%d)のレジスタインデックス: %d\n", threeAddrTable->r_opd2, r2);
+        }
+        else
+        {
+            printf("右子ノードの計算結果仮想レジスタを代入\n");
+            // printf("右子ノードの計算結果仮想レジスタを代入 (%d <- %d)\n", threeAddrTable->r_opd2, threeAddrTable->n_opd2->reg);
+            // threeAddrTable->r_opd2 = threeAddrTable->n_opd2->reg;
+
+            r2 = useReg(threeAddrTable->r_opd2);
+            while (r2 == NO_UNUSED_REG)
+            {
+                for (i = 0; i < MAX_REG; i++)
+                    if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
+                        saveReg(i);
+                r2 = getReg(threeAddrTable->r_opd2);
+            }
+        }
+        // printREG();
+        // printf("r0: %d\n", threeAddrTable->result);
+        // r0 = useReg(threeAddrTable->result);
+        // r0 = getReg(threeAddrTable->result);
+        // r1 = useReg(threeAddrTable->r_opd1);
+
+        // r2 = useReg(threeAddrTable->r_opd2);
+
+        freeReg(r1);
+        freeReg(r2);
+        if (threeAddrTable->result < 0)
+            break;
+        assignReg(threeAddrTable->result, r1);
+        // freeReg(r1);
+        if (threeAddrTable->n_opd1 != NULL)
+            printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r1], threeAddrTable->n_opd1->value, regName[r1], threeAddrTable->n_opd1->value); // Add TODO: 数字だけ
+        if (threeAddrTable->n_opd2 != NULL)
+            printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r2], threeAddrTable->n_opd2->value, regName[r2], threeAddrTable->n_opd2->value); // Add TODO: 数字だけ
+        printf("\tadd\t%s, %s, %s\n", regName[r1], regName[r1], regName[r2]);
+        break;
+
+    default:
+        break;
+    }
+
+    // printTA(threeAddrTable);
+
+    if (threeAddrTable->next != NULL)
+    {
+        // printTA(threeAddrTable->next);
+        genExpression(threeAddrTable->next);
+    }
 }
 
 void genCondition(Node *np, Symbol *symbolTable, char *label)
@@ -388,6 +647,7 @@ void genWhileLoop(Node *np, Symbol *symbolTable)
 
 void exploreStatsTree(Node *np, Symbol *symbolTable)
 {
+    ThreeAddr *threeAddrTable = NULL;
     switch (np->nType)
     {
     case Assign_AST:
@@ -405,7 +665,13 @@ void exploreStatsTree(Node *np, Symbol *symbolTable)
     case Mul_AST:
     case Div_AST:
     case Mod_AST:
-        genExpression(np, symbolTable);
+        threeAddrTable = exploreExpressionTree(np, threeAddrTable);
+        printTA(threeAddrTable);
+        initReg(threeAddrTable);
+        // printf("DONE INIT\n");
+        // printREG();
+        genExpression(threeAddrTable);
+        // TODO: ここで初期化？
         if (np->brother != NULL)
             exploreStatsTree(np->brother, symbolTable);
         return;
@@ -422,6 +688,7 @@ void exploreStatsTree(Node *np, Symbol *symbolTable)
 
 int codegen(Node *top)
 {
+    initTmpReg();
     Symbol *symbolTable = NULL;
 
     printInitialize();
@@ -442,6 +709,7 @@ int codegen(Node *top)
     printf("\t.text 0x00001000\t# 以降のコードを 0から配置 x00001000\n");
     printf("main:\n");
     printf("\tla $t0, RESULT\t\t# $t0 ←0x10004000\n");
+    printf("\tla $t1, RESULT\t\t# $t1 ←0x10004000\n");
 
     exploreStatsTree(top->child->brother, symbolTable);
 
