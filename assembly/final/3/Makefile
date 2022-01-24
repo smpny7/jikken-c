@@ -31,4 +31,4 @@ test4:; ./main < test4.c > test4.s; maps -e test4.s
 test5:; ./main < test5.c > test5.s; maps -e test5.s
 test6:; ./main < test6.c > test6.s; maps -e test6.s
 
-clean:; rm -f *.o *~ parse.tab* lex.yy.c main
+clean:; rm -f *.o *~ parse.tab* lex.yy.c main *.s *.s.mem

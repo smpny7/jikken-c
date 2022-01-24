@@ -67,7 +67,7 @@ void exploreStatsTree(Node *np, Symbol *symbolTable);
 
 int symbol_offset = 0;
 int while_label_cnt = 0;
-Reg reg_serial_num = 0;
+Reg reg_end = 0;
 Reg vr_reg_end = 0;
 
 #define MAX_REG 3     /* 一時的な変数に割り当てるレジスタ数 */
@@ -113,8 +113,7 @@ void saveReg(Reg reg)
     {
         if (vrRegState[i] < 0)
         {
-            printf("\tsw\t%s,%d($sp)\n", regName[reg], -++vr_reg_end * 4);
-            printf("\tnop\n");
+            printf("\tsw\t%s,%d($sp)\n\tnop\n", regName[reg], -++vr_reg_end * 4);
             vrRegState[i] = regState[reg];
             regState[reg] = -1;
             return;
@@ -163,8 +162,7 @@ Reg useReg(VRReg vr_reg)
             }
             vrRegState[i] = -1;
             /* load into regsiter */
-            printf("\tlw\t%s, %d($sp)\n", regName[rr], -vr_reg_end-- * 4);
-            printf("\tnop\n");
+            printf("\tlw\t%s, %d($sp)\n\tnop\n", regName[rr], -vr_reg_end-- * 4);
             return rr;
         }
     }
@@ -184,18 +182,30 @@ void freeReg(int reg)
     regState[reg] = -1;
 }
 
+void freeAllReg()
+{
+    int i;
+    for (i = 0; i < MAX_REG; i++)
+        regState[i] = -1;
+    for (i = 0; i < MAX_VR_REG; i++)
+        vrRegState[i] = -1;
+
+    reg_end = 0;
+    vr_reg_end = 0;
+}
+
 void initReg(ThreeAddr *ta)
 {
     // int r_num, i;
     // for (r_num = 0; r_num < MAX_REG; r_num++)
     //     assignReg(r_num + 1, r_num);
-    // for (i = 0; r_num < reg_serial_num; i++)
+    // for (i = 0; r_num < reg_end; i++)
     // {
     //     vrRegState[i] = r_num;
     //     r_num++;
     // }
     int reg_num;
-    for (reg_num = 0; reg_num < reg_serial_num; reg_num++)
+    for (reg_num = 0; reg_num < reg_end; reg_num++)
     {
         vrRegState[reg_num] = reg_num;
     }
@@ -430,15 +440,15 @@ ThreeAddr *exploreExpressionTree(Node *np, ThreeAddr *tp)
 
     if (isExpressionNodeType(np->nType))
     {
-        int return_reg_num = reg_serial_num++;
-        int left_reg_num = isExpressionNodeType(np->child->nType) ? np->child->reg ? np->child->reg : reg_serial_num++ : 0;
-        int right_reg_num = isExpressionNodeType(np->child->brother->nType) ? np->child->brother->reg ? np->child->brother->reg : reg_serial_num++ : 0;
+        int return_reg_num = reg_end++;
+        int left_reg_num = isExpressionNodeType(np->child->nType) ? np->child->reg ? np->child->reg : reg_end++ : 0;
+        int right_reg_num = isExpressionNodeType(np->child->brother->nType) ? np->child->brother->reg ? np->child->brother->reg : reg_end++ : 0;
 
         // int has_left_expression_node = isExpressionNodeType(np->child->nType);
         // int has_right_expression_node = isExpressionNodeType(np->child->brother->nType);
         tp = threeAddrListAdd(tp, np->nType, return_reg_num, left_reg_num, right_reg_num, !isExpressionNodeType(np->child->nType) ? np->child : NULL, !isExpressionNodeType(np->child->brother->nType) ? np->child->brother : NULL);
         np->reg = return_reg_num;
-        // reg_serial_num += has_left_expression_node + has_right_expression_node + 1;
+        // reg_end += has_left_expression_node + has_right_expression_node + 1;
     }
 
     if (np->brother != NULL)
@@ -454,7 +464,7 @@ Symbol *exploreDeclsTree(Node *np, Symbol *sp)
     switch (np->nType)
     {
     case Define_AST:
-        printf("\t.word 10\t\t# %s\n", np->child->varName);
+        printf("\t.word 4\t\t# %s\n", np->child->varName);
 
         sp = symbolListAdd(sp, np->child->varName, symbol_offset, 1, NULL);
         symbol_offset += 4;
@@ -491,14 +501,14 @@ Symbol *exploreDeclsTree(Node *np, Symbol *sp)
 • 条件式
 */
 
-void genCalc(ThreeAddr *threeAddrTable, NodeType nType)
+void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
 {
     int i;
     Reg r1, r2;
     if (threeAddrTable->n_opd1 != NULL)
     {
-        threeAddrTable->r_opd1 = reg_serial_num;
-        addSaveReg(reg_serial_num++);
+        threeAddrTable->r_opd1 = reg_end;
+        addSaveReg(reg_end++);
 
         r1 = getReg(threeAddrTable->r_opd1);
     }
@@ -523,8 +533,8 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType)
 
     if (threeAddrTable->n_opd2 != NULL)
     {
-        threeAddrTable->r_opd2 = reg_serial_num;
-        addSaveReg(reg_serial_num++);
+        threeAddrTable->r_opd2 = reg_end;
+        addSaveReg(reg_end++);
         r2 = getReg(threeAddrTable->r_opd2);
     }
     else
@@ -551,9 +561,27 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType)
         return;
     assignReg(threeAddrTable->result, r1);
     if (threeAddrTable->n_opd1 != NULL)
-        printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r1], threeAddrTable->n_opd1->value, regName[r1], threeAddrTable->n_opd1->value); // Add TODO: 数字だけ
+    {
+        if (threeAddrTable->n_opd1->varName != NULL)
+        {
+            printf("\tlw\t%s, %d($t0)\n\tnop\n", regName[r1], getOffset(threeAddrTable->n_opd1, symbolTable));
+        }
+        else
+        {
+            printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r1], threeAddrTable->n_opd1->value, regName[r1], threeAddrTable->n_opd1->value); // Add TODO: 数字だけ
+        }
+    }
     if (threeAddrTable->n_opd2 != NULL)
-        printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r2], threeAddrTable->n_opd2->value, regName[r2], threeAddrTable->n_opd2->value); // Add TODO: 数字だけ
+    {
+        if (threeAddrTable->n_opd2->varName != NULL)
+        {
+            printf("\tlw\t%s, %d($t0)\n\tnop\n", regName[r2], getOffset(threeAddrTable->n_opd2, symbolTable));
+        }
+        else
+        {
+            printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r2], threeAddrTable->n_opd2->value, regName[r2], threeAddrTable->n_opd2->value); // Add TODO: 数字だけ
+        }
+    }
 
     switch (nType)
     {
@@ -581,11 +609,11 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType)
     }
 }
 
-void genCalcs(ThreeAddr *threeAddrTable)
+void genCalcs(ThreeAddr *threeAddrTable, Symbol *symbolTable)
 {
     if (isExpressionNodeType(threeAddrTable->nType))
     {
-        genCalc(threeAddrTable, threeAddrTable->nType);
+        genCalc(threeAddrTable, threeAddrTable->nType, symbolTable);
         // printf("la\t$a2, 0x00000000\n");
         // printf("sw\t%s, 0($a2)\n", regName[useReg(threeAddrTable->result)]);
         // printf("\tnop\n");
@@ -595,7 +623,7 @@ void genCalcs(ThreeAddr *threeAddrTable)
 
     if (threeAddrTable->next != NULL)
     {
-        genCalcs(threeAddrTable->next);
+        genCalcs(threeAddrTable->next, symbolTable);
     }
 }
 
@@ -606,23 +634,40 @@ void genExpression(Node *np, Symbol *symbolTable)
         ThreeAddr *threeAddrTable = NULL;
         threeAddrTable = exploreExpressionTree(np, threeAddrTable);
         // printTA(threeAddrTable);
+        freeAllReg();
         initReg(threeAddrTable);
         // printf("DONE INIT\n");
         // printREG();
-        genCalcs(threeAddrTable);
-        // TODO: ここで初期化？
+        genCalcs(threeAddrTable, symbolTable);
         if (np->brother != NULL)
             exploreStatsTree(np->brother, symbolTable);
-        return;
+    }
+    else if (np->varName != NULL) // TODO: 変数or数字 関数化 sw lw 注意
+    {
+        printf("\tlw\t$v0, %d($t0)\n\tnop\n", getOffset(np, symbolTable));
+    }
+    else
+    {
+        printf("\tori\t$v0, $zero, %d\t# $v0 ← %d\n", np->value, np->value); // Add TODO: 数字だけ
     }
 }
 
 void genCondition(Node *np, Symbol *symbolTable, char *label)
 {
     // code_generation_for_expression(child_node->brother);
-    printf("\t(算術式)\n");
-    printf("\tadd $v1, $zero, $a0\t# $v1 = $v0\n");
-    printf("\t(算術式)\n");
+    genExpression(np->child, symbolTable);
+    printf("\tadd $v1, $zero, $v0\t# $v1 = $v0\n");
+
+    // printf("la\t$a2, 0x00000000\n");
+    // printf("sw\t%s, 0($a2)\n", "$v1");
+    // printf("\tnop\n");
+
+    genExpression(np->child->brother, symbolTable);
+
+    // printf("la\t$a2, 0x00000000\n");
+    // printf("sw\t%s, 0($a2)\n", "$v0");
+    // printf("\tnop\n");
+
     switch (np->nType)
     {
     case Eq_AST:
@@ -654,7 +699,7 @@ void genAssignment(Node *np, Symbol *symbolTable)
     // code_generation_for_expression(child_node->brother);
     // printf("\t(算術式)\n");
     genExpression(np->child->brother, symbolTable);
-    printf("\tsw $v0, %d($t0)\n", getOffset(np->child, symbolTable));
+    printf("\tsw\t$v0, %d($t0)\n\tnop\n", getOffset(np->child, symbolTable));
 }
 
 void genWhileLoop(Node *np, Symbol *symbolTable)
@@ -667,8 +712,7 @@ void genWhileLoop(Node *np, Symbol *symbolTable)
     genCondition(np->child, symbolTable, label);
     printf("\tnop\n");
     exploreStatsTree(np->child->brother, symbolTable);
-    printf("\tj $WHILE%d\n", n_while_label_cnt);
-    printf("\tnop\n\n");
+    printf("\tj\t$WHILE%d\n\tnop\n\n", n_while_label_cnt);
 
     printf("$WHILE%d_EXIT:\n", n_while_label_cnt);
 }
@@ -719,12 +763,12 @@ int codegen(Node *top)
     printf("\t#\n");
     printf("\t.text 0x00001000\t# 以降のコードを 0から配置 x00001000\n");
     printf("main:\n");
-    printf("\tla $t0, RESULT\t\t# $t0 ←0x10004000\n");
-    printf("\tla $t1, RESULT\t\t# $t1 ←0x10004000\n");
+    printf("\tla\t$t0, RESULT\t\t# $t0 ←0x10004000\n");
+    // printf("\tla $t1, RESULT\t\t# $t1 ←0x10004000\n");
 
     exploreStatsTree(top->child->brother, symbolTable);
 
-    printf("\n\tjr $ra\n");
+    printf("\n\tjr\t$ra\n");
     printf("\tnop\t\t\t# (delay slot)\n");
 
     return 0;
