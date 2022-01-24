@@ -1,7 +1,7 @@
 #define MAXBUF 80
 
-typedef unsigned int Reg;
-typedef unsigned int VRReg;
+typedef unsigned int RegIndex; /* レジスタのインデックス */
+typedef unsigned int VRReg;    /* 仮想レジスタの番号 */
 
 typedef enum
 {

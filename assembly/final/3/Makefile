@@ -5,7 +5,7 @@ YACC = bison -d
 HDRS = parse.tab.h
 LDFLAGS = -DYYERROR_VERBOSE -lfl -ly
 LIBS =
-OBJS = parse.tab.o lex.yy.o ast.o codegen.o
+OBJS = parse.tab.o lex.yy.o ast.o codegen.o list.o register.o
 PROGRAM = main
 
 all: $(PROGRAM)
@@ -19,6 +19,8 @@ parse.tab.c: parse.y
 	$(YACC) parse.y
 ast.o: ast.c ast.h
 codegen.o: codegen.c
+list.o: list.c list.h
+register.o: register.c register.h
 
 ###
 
@@ -29,6 +31,5 @@ test31:; ./main < test3_1.c > test3_1.s; maps -e test3_1.s
 test32:; ./main < test3_2.c > test3_2.s; maps -e test3_2.s
 test4:; ./main < test4.c > test4.s; maps -e test4.s
 test5:; ./main < test5.c > test5.s; maps -e test5.s
-test6:; ./main < test6.c > test6.s; maps -e test6.s
 
 clean:; rm -f *.o *~ parse.tab* lex.yy.c main *.s *.s.mem

@@ -1,6 +1,8 @@
 {
     "files.associations": {
-        "string.h": "c"
+        "string.h": "c",
+        "register.h": "c",
+        "list.h": "c"
     },
     "cSpell.words": [
         "yyerror",
