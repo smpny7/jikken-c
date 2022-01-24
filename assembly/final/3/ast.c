@@ -10,7 +10,7 @@ extern int yyparse();
 
 extern int codegen();
 
-#define IS_DEBUG 1
+#define IS_DEBUG 0
 
 /*
 * Overview: Create one child node.
