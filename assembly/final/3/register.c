@@ -9,7 +9,7 @@ int regSaveState[MAX_SAVE]; /* 退避領域と仮想レジスタの紐付け */
 
 char *regName[MAX_REG] = {"$t1", "$t2", "$t3"};
 
-RegIndex vr_reg_end = 0;
+RegIndex vr_reg_end = 1;
 RegIndex reg_save_end = 0;
 
 /*
@@ -119,7 +119,7 @@ void freeAllReg()
     for (i = 0; i < MAX_SAVE; i++)
         regSaveState[i] = FREE_REG;
 
-    vr_reg_end = 0;
+    vr_reg_end = 1;
     reg_save_end = 0;
 }
 

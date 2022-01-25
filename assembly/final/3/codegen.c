@@ -6,6 +6,7 @@
 #include "list.h"
 
 extern int yyerror();
+// extern char* node_type_str[];
 
 void exploreStatsTree(Node *np, Symbol *symbolTable);
 
@@ -15,6 +16,47 @@ int while_label_cnt = 0;
 int isExpressionNodeType(NodeType nType)
 {
     return nType == Add_AST || nType == Sub_AST || nType == Mul_AST || nType == Div_AST || nType == Mod_AST;
+}
+
+// void printTA(ThreeAddr *ta)
+// {
+//     printf("=================\n");
+//     printf("type: %s\n", node_type_str[ta->nType]);
+//     printf("result: %d\n", ta->result);
+//     printf("r_opd1: %d\n", ta->r_opd1);
+//     printf("r_opd2: %d\n", ta->r_opd2);
+//     if (ta->n_opd1 != NULL)
+//         printf("n_opd1: %s\n", node_type_str[ta->n_opd1->nType]);
+//     if (ta->n_opd1 != NULL && ta->n_opd1->value)
+//         printf("value: %d\n", ta->n_opd1->value);
+//     if (ta->n_opd1 != NULL && ta->n_opd1->varName != NULL)
+//         printf("varName: %s\n", ta->n_opd1->varName);
+//     if (ta->n_opd2 != NULL)
+//         printf("n_opd2: %s\n", node_type_str[ta->n_opd2->nType]);
+//     if (ta->n_opd2 != NULL && ta->n_opd2->value)
+//         printf("value: %d\n", ta->n_opd2->value);
+//     if (ta->n_opd2 != NULL && ta->n_opd2->varName != NULL)
+//         printf("varName: %s\n", ta->n_opd2->varName);
+//     printf("=================\n\n");
+
+//     if (ta->next != NULL)
+//         printTA(ta->next);
+// }
+
+void printREG()
+{
+    int i;
+    printf("=================\n");
+    printf("regState\n");
+    printf("=================\n");
+    for (i = 0; i < MAX_REG; i++)
+        printf("%d: %d\n", i, regState[i]);
+    printf("=================\n");
+    printf("vrRegState\n");
+    printf("=================\n");
+    for (i = 0; i < MAX_SAVE; i++)
+        printf("%d: %d\n", i, regSaveState[i]);
+    printf("=================\n");
 }
 
 void printInitialize()
@@ -54,7 +96,7 @@ int getOffset(Node *np, Symbol *sp)
         return sp->offset;
     if (sp->next)
         return getOffset(np, (Symbol *)sp->next);
-    printf("Variable name is not registered in the symbol table\n");
+    fprintf(stderr, "Variable name is not registered in the symbol table\n");
     exit(1);
 }
 
@@ -149,6 +191,8 @@ Symbol *exploreDeclsTree(Node *np, Symbol *sp)
 
 void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
 {
+    // printREG();
+
     int i;
     RegIndex r1, r2;
     if (threeAddrTable->n_opd1 != NULL)
@@ -157,6 +201,14 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         addSaveReg(vr_reg_end++);
 
         r1 = getFreeReg(threeAddrTable->r_opd1);
+
+        while (r1 == NO_FREE_REG)
+        {
+            for (i = 0; i < MAX_REG; i++)
+                if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
+                    saveReg(i);
+            r1 = getFreeReg(threeAddrTable->r_opd1);
+        }
     }
     else
     {
@@ -166,14 +218,14 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         // threeAddrTable->r_opd1 = threeAddrTable->n_opd1->reg;
 
         r1 = getAssignedRegister(threeAddrTable->r_opd1);
-    }
 
-    while (r1 == NO_FREE_REG)
-    {
-        for (i = 0; i < MAX_REG; i++)
-            if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
-                saveReg(i);
-        r1 = getFreeReg(threeAddrTable->r_opd1);
+        while (r1 == NO_FREE_REG)
+        {
+            for (i = 0; i < MAX_REG; i++)
+                if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
+                    saveReg(i);
+            r1 = getAssignedRegister(threeAddrTable->r_opd1);
+        }
     }
     // printf("r1(%d)のレジスタインデックス: %d\n", threeAddrTable->r_opd1, r1);
 
@@ -182,6 +234,14 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         threeAddrTable->r_opd2 = vr_reg_end;
         addSaveReg(vr_reg_end++);
         r2 = getFreeReg(threeAddrTable->r_opd2);
+
+        while (r2 == NO_FREE_REG)
+        {
+            for (i = 0; i < MAX_REG; i++)
+                if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
+                    saveReg(i);
+            r2 = getFreeReg(threeAddrTable->r_opd2);
+        }
     }
     else
     {
@@ -191,13 +251,14 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         // threeAddrTable->r_opd2 = threeAddrTable->n_opd2->reg;
 
         r2 = getAssignedRegister(threeAddrTable->r_opd2);
-    }
-    while (r2 == NO_FREE_REG)
-    {
-        for (i = 0; i < MAX_REG; i++)
-            if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
-                saveReg(i);
-        r2 = getFreeReg(threeAddrTable->r_opd2);
+
+        while (r2 == NO_FREE_REG)
+        {
+            for (i = 0; i < MAX_REG; i++)
+                if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
+                    saveReg(i);
+            r2 = getAssignedRegister(threeAddrTable->r_opd2);
+        }
     }
     // printf("r2(%d)のレジスタインデックス: %d\n", threeAddrTable->r_opd2, r2);
 
