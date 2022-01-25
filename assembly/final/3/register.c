@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include "ast.h"
 #include "register.h"
+#include "generate.h"
 #include "list.h"
 
 int regState[MAX_REG];      /* レジスタと仮想レジスタの紐付け */

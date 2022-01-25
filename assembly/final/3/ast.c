@@ -186,7 +186,7 @@ int main(void)
 {
     if (yyparse())
     {
-        fprintf(stderr, "Error\n");
+        fprintf(stderr, "抽象構文木の作成に失敗しました.\n");
         return 1;
     }
 

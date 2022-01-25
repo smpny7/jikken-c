@@ -5,7 +5,7 @@ YACC = bison -d
 HDRS = parse.tab.h
 LDFLAGS = -DYYERROR_VERBOSE -lfl -ly
 LIBS =
-OBJS = parse.tab.o lex.yy.o ast.o codegen.o list.o register.o
+OBJS = parse.tab.o lex.yy.o ast.o codegen.o register.o generate.o list.o
 PROGRAM = main
 
 all: $(PROGRAM)
@@ -19,8 +19,9 @@ parse.tab.c: parse.y
 	$(YACC) parse.y
 ast.o: ast.c ast.h
 codegen.o: codegen.c
-list.o: list.c list.h
 register.o: register.c register.h
+generate.o: generate.c generate.h
+list.o: list.c list.h
 
 ###
 

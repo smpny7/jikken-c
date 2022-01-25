@@ -3,7 +3,8 @@
         "string.h": "c",
         "register.h": "c",
         "list.h": "c",
-        "print_tree_gui.h": "c"
+        "print_tree_gui.h": "c",
+        "generate.h": "c"
     },
     "cSpell.words": [
         "yyerror",

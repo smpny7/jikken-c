@@ -206,7 +206,7 @@ cond_stmt
     }
     | IF L_PARAN condition R_PARAN L_BRACE statements R_BRACE ELSE cond_stmt
     {
-        $$ = build_node3(If_AST, $3, $6, $9);
+        $$ = build_node3(If_AST, $3, $6, build_node1(Stats_AST, $9));
     }
 ;
 /* <条件式> ::= <算術式> <比較演算子> <算術式> */

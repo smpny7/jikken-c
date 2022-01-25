@@ -3,6 +3,7 @@
 #include <string.h>
 #include "ast.h"
 #include "register.h"
+#include "generate.h"
 #include "list.h"
 
 extern int yyerror();
@@ -11,6 +12,7 @@ extern int yyerror();
 void exploreStatsTree(Node *np, Symbol *symbolTable);
 
 int symbol_offset = 0;
+int if_label_cnt = 0;
 int while_label_cnt = 0;
 
 int isExpressionNodeType(NodeType nType)
@@ -57,37 +59,6 @@ void printREG()
     for (i = 0; i < MAX_SAVE; i++)
         printf("%d: %d\n", i, regSaveState[i]);
     printf("=================\n");
-}
-
-void printInitialize()
-{
-    printf("\tINITIAL_GP = 0x10008000\t# initial value of global pointer\n");
-    printf("\tINITIAL_SP = 0x7ffffffc\t# initial value of stack pointer\n");
-    printf("\tstop_service = 99\t# system call service number\n\n");
-
-    printf("\t.text\t\t\t# テキストセグメントの開始\n");
-    printf("init:\n");
-    printf("\t# initialize $gp (global pointer) and $sp (stack pointer)\n");
-    printf("\tla $gp, INITIAL_GP\t# $gp ←0x10008000 (INITIAL_GP)\n");
-    printf("\tla $sp, INITIAL_SP\t# $sp ←0x7ffffffc (INITIAL_SP)\n");
-    printf("\tjal main\t\t# jump to 'main'\n");
-    printf("\tnop\t\t\t# (delay slot)\n");
-    printf("\tli $v0, stop_service\t# $v0 ←99 (stop_service)\n");
-    printf("\tsyscall\t\t\t# stop\n");
-    printf("\tnop\n");
-    printf("\t# not reach here\n");
-    printf("\tla $sp, INITIAL_SP\t# $sp ←0x7ffffffc (INITIAL_SP)\n\n");
-
-    printf("stop:\t# if syscall return\n");
-    printf("\tj stop\t\t\t# infinite loop...\n");
-    printf("\tnop\t\t\t# (delay slot)\n\n");
-}
-
-void printFinalize()
-{
-    printf("$EXIT:\n");
-    printf("\tjr $ra\n");
-    printf("nop # (delay slot)\n");
 }
 
 int getOffset(Node *np, Symbol *sp)
@@ -346,8 +317,9 @@ void genExpression(Node *np, Symbol *symbolTable)
         // printf("DONE INIT\n");
         // printREG();
         genCalcs(threeAddrTable, symbolTable);
-        if (np->brother != NULL)
-            exploreStatsTree(np->brother, symbolTable);
+        // TODO: ここ2行かな？
+        // if (np->brother != NULL)
+        //     exploreStatsTree(np->brother, symbolTable);
     }
     else if (np->varName != NULL) // TODO: 変数or数字 関数化 sw lw 注意
     {
@@ -378,7 +350,7 @@ void genCondition(Node *np, Symbol *symbolTable, char *label)
     switch (np->nType)
     {
     case Eq_AST:
-        printf("\tbne $t1, $t3, %s\n", label);
+        printf("\tbne $v0, $v1, %s\n", label);
         break;
 
     case LtoE_AST:
@@ -396,7 +368,7 @@ void genCondition(Node *np, Symbol *symbolTable, char *label)
         break;
 
     default:
-        printf("ERROR\n");
+        fprintf(stderr, "不明な比較演算子が入力されました.\n");
         exit(1);
     }
 }
@@ -409,43 +381,71 @@ void genAssignment(Node *np, Symbol *symbolTable)
     printf("\tsw\t$v0, %d($t0)\n\tnop\n", getOffset(np->child, symbolTable));
 }
 
+void genIfBranch(Node *np, Symbol *symbolTable)
+{
+    int n_if_label_cnt = if_label_cnt++;
+    // printf("\n\n===================（開始%d）===================\n\n", n_if_label_cnt);
+    char else_label[MAXBUF] = {0};
+    char exit_label[MAXBUF] = {0};
+    snprintf(else_label, MAXBUF, "$IF%d_ELSE", n_if_label_cnt);
+    snprintf(exit_label, MAXBUF, "$IF%d_EXIT", n_if_label_cnt);
+
+    printf("\n$IF%d:\n", n_if_label_cnt);
+
+    genCondition(np->child, symbolTable, np->child->brother->brother == NULL ? exit_label : else_label);
+    printf("\tnop\n");
+    // printf("\n\n（TRUE式）\n\n");
+    exploreStatsTree(np->child->brother, symbolTable);
+    // printf("\n\n（TRUE式 終わり）\n\n");
+    if (np->child->brother->brother != NULL)
+    {
+        printf("\tj\t%s\n\tnop\n\n", exit_label);
+        printf("%s:\n", else_label);
+        exploreStatsTree(np->child->brother->brother, symbolTable);
+    }
+    printf("\n%s:\n", exit_label);
+    // printf("\n\n===================（終了%d）===================\n\n", n_if_label_cnt);
+}
+
 void genWhileLoop(Node *np, Symbol *symbolTable)
 {
-    char label[MAXBUF] = {0};
     int n_while_label_cnt = while_label_cnt++;
+    char exit_label[MAXBUF] = {0};
+    snprintf(exit_label, MAXBUF, "$WHILE%d_EXIT", n_while_label_cnt);
 
     printf("\n$WHILE%d:\n", n_while_label_cnt);
-    snprintf(label, MAXBUF, "$WHILE%d_EXIT", n_while_label_cnt);
-    genCondition(np->child, symbolTable, label);
+    genCondition(np->child, symbolTable, exit_label);
     printf("\tnop\n");
     exploreStatsTree(np->child->brother, symbolTable);
     printf("\tj\t$WHILE%d\n\tnop\n\n", n_while_label_cnt);
 
-    printf("$WHILE%d_EXIT:\n", n_while_label_cnt);
+    printf("%s:\n", exit_label);
 }
 
 void exploreStatsTree(Node *np, Symbol *symbolTable)
 {
-    switch (np->nType)
+    switch (np->child->nType)
     {
     case Assign_AST:
-        genAssignment(np, symbolTable);
+        genAssignment(np->child, symbolTable);
         break;
 
     case While_AST:
-        genWhileLoop(np, symbolTable);
-        if (np->brother != NULL)
-            exploreStatsTree(np->brother, symbolTable);
-        return;
+        genWhileLoop(np->child, symbolTable);
+        break;
+
+    case If_AST:
+        genIfBranch(np->child, symbolTable);
+        break;
 
     default:
         break;
     }
 
-    if (np->child != NULL)
-        exploreStatsTree(np->child, symbolTable);
-    if (np->brother != NULL)
-        exploreStatsTree(np->brother, symbolTable);
+    // if (np->child != NULL)
+    //     exploreStatsTree(np->child, symbolTable);
+    if (np->child->brother != NULL)
+        exploreStatsTree(np->child->brother, symbolTable);
 }
 
 int codegen(Node *top)
@@ -453,30 +453,15 @@ int codegen(Node *top)
     freeAllReg();
     Symbol *symbolTable = NULL;
 
-    printInitialize();
-
-    printf("\t#\n");
-    printf("\t# data segment\n");
-    printf("\t#\n");
-    printf("\t.data 0x10004000\t# データセグメントの開始\n");
-    printf("RESULT:\n");
+    genInitialize();
+    genStartDataSegment();
 
     symbolTable = exploreDeclsTree(top->child, symbolTable);
 
-    // printSP(symbolTable);
-
-    printf("\n\t#\n");
-    printf("\t# text segment\n");
-    printf("\t#\n");
-    printf("\t.text 0x00001000\t# 以降のコードを 0から配置 x00001000\n");
-    printf("main:\n");
-    printf("\tla\t$t0, RESULT\t\t# $t0 ←0x10004000\n");
-    // printf("\tla $t1, RESULT\t\t# $t1 ←0x10004000\n");
-
+    genStartTextSegment();
     exploreStatsTree(top->child->brother, symbolTable);
 
-    printf("\n\tjr\t$ra\n");
-    printf("\tnop\t\t\t# (delay slot)\n");
+    genFinalize();
 
     return 0;
 }

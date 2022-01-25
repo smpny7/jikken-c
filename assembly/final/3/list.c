@@ -2,6 +2,7 @@
 #include <string.h>
 #include "ast.h"
 #include "register.h"
+#include "generate.h"
 #include "list.h"
 
 extern int yyerror();
