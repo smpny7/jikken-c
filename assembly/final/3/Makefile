@@ -33,4 +33,4 @@ test32:; ./main < test3_2.c > test3_2.s 2> stderr.log; maps -e test3_2.s
 test4:; ./main < test4.c > test4. 2> stderr.logs; maps -e test4.s
 test5:; ./main < test5.c > test5.s 2> stderr.log; maps -e test5.s
 
-clean:; rm -f *.o *~ parse.tab* lex.yy.c main *.s *.s.mem
+clean:; rm -f *.o *~ parse.tab* lex.yy.c main *.s *.s.mem stderr.log

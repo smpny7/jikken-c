@@ -361,7 +361,7 @@ void genCondition(Node *np, Symbol *symbolTable, char *label)
         break;
 
     case GtoE_AST:
-        printf("\taddi $v0, $v0, 1\n");
+        printf("\taddi $v1, $v1, 1\n");
     case Gt_AST:
         printf("\tslt $t2, $v0, $v1\n");
         printf("\tbeq $t2, $zero, %s\n", label);
