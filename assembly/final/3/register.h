@@ -1,5 +1,5 @@
-#define MAX_REG 3   /* レジスタ数 */
-#define MAX_SAVE 80 /* 退避領域数 */
+#define MAX_REG 23   /* レジスタ数 */
+#define MAX_SAVE 120 /* 退避領域数 */
 
 #define FREE_REG -1
 #define NO_FREE_REG -1

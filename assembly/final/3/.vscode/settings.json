@@ -4,7 +4,8 @@
         "register.h": "c",
         "list.h": "c",
         "print_tree_gui.h": "c",
-        "generate.h": "c"
+        "generate.h": "c",
+        "type_traits": "c"
     },
     "cSpell.words": [
         "yyerror",

@@ -52,5 +52,5 @@ void genFinalize()
 {
     printf("\n$EXIT:\n");
     printf("\tjr $ra\n");
-    printf("nop # (delay slot)\n");
+    printf("\tnop # (delay slot)\n");
 }

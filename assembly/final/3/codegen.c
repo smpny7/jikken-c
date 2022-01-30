@@ -6,12 +6,54 @@
 #include "generate.h"
 #include "list.h"
 
+extern void printTreeGUI();
+
 extern int yyerror();
 
+void printSP(Symbol *sp)
+{
+    printf("=================\n");
+    printf("varName: %s\n", sp->varName);
+    printf("offset: %d\n", sp->offset);
+    printf("size: %d\n", sp->size);
+    printf("=================\n\n");
+
+    if (sp->next != NULL)
+        printSP(sp->next);
+}
+
+void printIP(ArrayIndex *ip)
+{
+    printf("=================\n");
+    printf("size: %d\n", ip->size);
+    printf("=================\n\n");
+
+    if (ip->next != NULL)
+        printIP(ip->next);
+}
+
+void printREG()
+{
+    int i;
+    printf("=================\n");
+    printf("regState\n");
+    printf("=================\n");
+    for (i = 0; i < MAX_REG; i++)
+        printf("%d: %d\n", i, regState[i]);
+    printf("=================\n");
+    printf("regSaveState\n");
+    printf("=================\n");
+    for (i = 0; i < MAX_SAVE; i++)
+        printf("%d: %d\n", i, regSaveState[i]);
+    printf("=================\n");
+}
+
 void exploreStatsTree(Node *np, Symbol *symbolTable);
+void genIdentOrNumberLoad(Node *np, char *regLabel, Symbol *symbolTable);
 
 int symbol_offset = 0;
 int if_label_cnt = 0;
+int for_label_cnt = 0;
 int while_label_cnt = 0;
 
 int isExpressionNodeType(NodeType nType)
@@ -19,14 +61,68 @@ int isExpressionNodeType(NodeType nType)
     return nType == Add_AST || nType == Sub_AST || nType == Mul_AST || nType == Div_AST || nType == Mod_AST;
 }
 
-int getOffset(Node *np, Symbol *sp)
+Symbol *getSymbolFromVarName(char *varName, Symbol *sp)
 {
-    if (strcmp(np->varName, sp->varName) == 0)
-        return sp->offset;
+    if (strcmp(varName, sp->varName) == 0)
+        return sp;
+
     if (sp->next)
-        return getOffset(np, (Symbol *)sp->next);
+        return getSymbolFromVarName(varName, sp->next);
+
     fprintf(stderr, "Variable name is not registered in the symbol table\n");
     exit(1);
+}
+
+int getIdentOffset(Node *np, Symbol *symbolTable)
+{
+    return getSymbolFromVarName(np->varName, symbolTable)->offset;
+}
+
+void replaceForArrayOffset(Node *np, ArrayIndex *ip)
+{
+    int mul_op = 1;
+    ArrayIndex *tmp_ip = ip;
+
+    while (tmp_ip->next != NULL)
+    {
+        fprintf(stderr, "まだ続きの配列次元がありますよ\n");
+        tmp_ip = tmp_ip->next;
+        mul_op *= tmp_ip->size;
+    }
+
+    Node *np_brother_tmp;
+    switch (np->child->nType)
+    {
+    case Number_AST:
+        fprintf(stderr, "Number_AST\n");
+        np_brother_tmp = np->child->brother;
+        np->child = build_node2(Mul_AST, build_num_node(Number_AST, np->child->value), build_num_node(Number_AST, mul_op));
+        np->child->brother = np_brother_tmp;
+        break;
+    case Ident_AST:
+        fprintf(stderr, "Ident_AST\n");
+        np_brother_tmp = np->child->brother;
+        np->child = build_node2(Mul_AST, build_ident_node(Ident_AST, np->child->varName), build_num_node(Number_AST, mul_op));
+        np->child->brother = np_brother_tmp;
+        break;
+
+    default:
+        fprintf(stderr, "OTHERS\n");
+        break;
+    }
+
+    np->nType = Add_AST;
+
+    if (np->child->brother != NULL)
+    {
+        fprintf(stderr, "次へ行く\n");
+        replaceForArrayOffset(np->child->brother, ip->next);
+    }
+    else
+    {
+        np->child->brother = build_num_node(Number_AST, 0);
+    }
+    fprintf(stderr, "おわり\n");
 }
 
 int getArraySize(ArrayIndex *ip)
@@ -36,6 +132,14 @@ int getArraySize(ArrayIndex *ip)
 
     return ip->size;
 }
+
+// int getArrayDimensionSize(ArrayIndex *ip)
+// {
+//     if (ip->next != NULL)
+//         return getArrayDimensionSize(ip->next) + 1;
+
+//     return 1;
+// }
 
 ArrayIndex *exploreArrayTree(Node *np, ArrayIndex *ip)
 {
@@ -52,7 +156,7 @@ ArrayIndex *exploreArrayTree(Node *np, ArrayIndex *ip)
 
 ThreeAddr *exploreExpressionTree(Node *np, ThreeAddr *tp)
 {
-    if (np->child != NULL)
+    if (np->child != NULL && np->nType != ArrayEl_AST)
         tp = exploreExpressionTree(np->child, tp);
 
     if (isExpressionNodeType(np->nType))
@@ -85,12 +189,12 @@ Symbol *exploreDeclsTree(Node *np, Symbol *sp)
         break;
 
     case Array_AST:
-        ip = exploreArrayTree(np, ip);
+        ip = exploreArrayTree(np->child->child, ip);
         int array_size = getArraySize(ip);
 
         printf("\t.space %d\t\t# %s\n", array_size * 4, np->child->varName);
 
-        sp = symbolListAdd(sp, np->child->varName, symbol_offset, array_size, ip);
+        sp = symbolListAdd(sp, np->child->varName, symbol_offset, array_size * 4, ip);
         symbol_offset += 4 * array_size;
         break;
 
@@ -110,6 +214,9 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
 {
     int i;
     RegIndex r1, r2;
+
+    // printREG();
+
     if (threeAddrTable->n_opd1 != NULL)
     {
         threeAddrTable->r_opd1 = vr_reg_end;
@@ -165,25 +272,19 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         }
     }
 
+    if (threeAddrTable->n_opd1 != NULL)
+        genIdentOrNumberLoad(threeAddrTable->n_opd1, regName[r1], symbolTable);
+    if (threeAddrTable->n_opd2 != NULL)
+        genIdentOrNumberLoad(threeAddrTable->n_opd2, regName[r2], symbolTable);
+
     freeReg(r1);
     freeReg(r2);
-    if (threeAddrTable->result < 0)
-        return;
+
+    if (threeAddrTable->result == FREE_REG)
+        exit(1);
     assignRegFromVR(threeAddrTable->result, r1);
-    if (threeAddrTable->n_opd1 != NULL)
-    {
-        if (threeAddrTable->n_opd1->varName != NULL)
-            printf("\tlw\t%s, %d($t0)\n\tnop\n", regName[r1], getOffset(threeAddrTable->n_opd1, symbolTable));
-        else
-            printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r1], threeAddrTable->n_opd1->value, regName[r1], threeAddrTable->n_opd1->value); // Add TODO: 数字だけ
-    }
-    if (threeAddrTable->n_opd2 != NULL)
-    {
-        if (threeAddrTable->n_opd2->varName != NULL)
-            printf("\tlw\t%s, %d($t0)\n\tnop\n", regName[r2], getOffset(threeAddrTable->n_opd2, symbolTable));
-        else
-            printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regName[r2], threeAddrTable->n_opd2->value, regName[r2], threeAddrTable->n_opd2->value); // Add TODO: 数字だけ
-    }
+
+    // printREG();
 
     switch (nType)
     {
@@ -220,23 +321,104 @@ void genCalcs(ThreeAddr *threeAddrTable, Symbol *symbolTable)
         genCalcs(threeAddrTable->next, symbolTable);
 }
 
+// extern char *node_type_str[];
+
+// void printTA(ThreeAddr *ta)
+// {
+//     printf("=================\n");
+//     printf("type: %s\n", node_type_str[ta->nType]);
+//     printf("result: %d\n", ta->result);
+//     printf("r_opd1: %d\n", ta->r_opd1);
+//     printf("r_opd2: %d\n", ta->r_opd2);
+//     if (ta->n_opd1 != NULL)
+//         printf("n_opd1: %s\n", node_type_str[ta->n_opd1->nType]);
+//     if (ta->n_opd1 != NULL && ta->n_opd1->value)
+//         printf("value: %d\n", ta->n_opd1->value);
+//     if (ta->n_opd1 != NULL && ta->n_opd1->varName != NULL)
+//         printf("varName: %s\n", ta->n_opd1->varName);
+//     if (ta->n_opd2 != NULL)
+//         printf("n_opd2: %s\n", node_type_str[ta->n_opd2->nType]);
+//     if (ta->n_opd2 != NULL && ta->n_opd2->value)
+//         printf("value: %d\n", ta->n_opd2->value);
+//     if (ta->n_opd2 != NULL && ta->n_opd2->varName != NULL)
+//         printf("varName: %s\n", ta->n_opd2->varName);
+//     printf("=================\n\n");
+
+//     if (ta->next != NULL)
+//         printTA(ta->next);
+// }
+
 void genExpression(Node *np, Symbol *symbolTable)
 {
     if (isExpressionNodeType(np->nType))
     {
         ThreeAddr *threeAddrTable = NULL;
         threeAddrTable = exploreExpressionTree(np, threeAddrTable);
-        freeAllReg();
-        setRegs(threeAddrTable);
+        // freeAllReg(); TODO: 多分不要
+        // setRegs(threeAddrTable);
+        // printTA(threeAddrTable);
         genCalcs(threeAddrTable, symbolTable);
-    }
-    else if (np->varName != NULL)
-    {
-        printf("\tlw\t$v0, %d($t0)\n\tnop\n", getOffset(np, symbolTable));
     }
     else
     {
-        printf("\tori\t$v0, $zero, %d\t# $v0 ← %d\n", np->value, np->value);
+        switch (np->nType)
+        {
+        case Pre_Increment_AST:
+        case Post_Increment_AST:
+            printf("\tlw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+            printf("\taddi\t$v0, $v0, 1\n");
+            printf("\tsw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+            break;
+        case Pre_Decrement_AST:
+        case Post_Decrement_AST:
+            printf("\tlw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+            printf("\taddi\t$v0, $v0, -1\n");
+            printf("\tsw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+            break;
+
+        default:
+            genIdentOrNumberLoad(np, "$v0", symbolTable);
+            break;
+        }
+    }
+}
+
+// 注意: 副作用で np->child 以下の木構造変化（効率化）
+void genArrayElOffset(Node *np, ArrayIndex *ip, Symbol *symbolTable)
+{
+    replaceForArrayOffset(np->child, ip);
+    genExpression(np->child, symbolTable);
+    printf("\taddi\t$t1, $zero, 4\t# $t1 = 4\n");
+    printf("\tmult\t$v0, $t1\t# $v0 *= 4\n");
+    printf("\tmflo\t$v0\n");
+    fprintf(stderr, "変数 %s の Offset は %d です\n", np->varName, getIdentOffset(np, symbolTable));
+    printf("\taddi $v0, $v0, %d\n", getIdentOffset(np, symbolTable));
+}
+
+void genIdentOrNumberLoad(Node *np, char *regLabel, Symbol *symbolTable) //TODO: 名前変更
+{
+    Symbol *sp;
+    switch (np->nType)
+    {
+    case Ident_AST:
+        printf("\tlw\t%s, %d($t0)\n\tnop\n", regLabel, getIdentOffset(np, symbolTable));
+        break;
+
+    case Number_AST:
+        printf("\tori\t%s, $zero, %d\t# %s ← %d\n", regLabel, np->value, regLabel, np->value);
+        break;
+
+    case ArrayEl_AST:
+        printf("# ↓ 配列 %s の作成\n", np->varName);
+        sp = getSymbolFromVarName(np->varName, symbolTable);
+        genArrayElOffset(np, sp->index, symbolTable);
+        printf("\tadd\t$t1, $t0, $v0\t# $t1 = $t0 + $v0\n");
+        printf("\tlw\t%s, 0($t1)\n\tnop\n", regLabel);
+        printf("# ↑ 配列 %s の作成\n", np->varName);
+        break;
+
+    default:
+        break;
     }
 }
 
@@ -275,8 +457,25 @@ void genCondition(Node *np, Symbol *symbolTable, char *label)
 
 void genAssignment(Node *np, Symbol *symbolTable)
 {
-    genExpression(np->child->brother, symbolTable);
-    printf("\tsw\t$v0, %d($t0)\n\tnop\n", getOffset(np->child, symbolTable));
+    switch (np->child->nType)
+    {
+    case Ident_AST:
+        genExpression(np->child->brother, symbolTable);
+        printf("\tsw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+        break;
+
+    case ArrayEl_AST:
+        genExpression(np->child->brother, symbolTable);
+        printf("\tadd $v1, $zero, $v0\t# $v1 = $v0\n");
+        Symbol *sp = getSymbolFromVarName(np->child->varName, symbolTable);
+        genArrayElOffset(np->child, sp->index, symbolTable);
+        printf("\tadd\t$t1, $t0, $v0\t# $t1 = $t0 + $v0\n");
+        printf("\tsw\t$v1, 0($t1)\n\tnop\n");
+        break;
+
+    default:
+        break;
+    }
 }
 
 void genIfBranch(Node *np, Symbol *symbolTable)
@@ -301,6 +500,23 @@ void genIfBranch(Node *np, Symbol *symbolTable)
     printf("\n%s:\n", exit_label);
 }
 
+void genForLoop(Node *np, Symbol *symbolTable)
+{
+    int n_for_label_cnt = for_label_cnt++;
+    char exit_label[MAXBUF] = {0};
+    snprintf(exit_label, MAXBUF, "$FOR%d_EXIT", n_for_label_cnt);
+
+    genAssignment(np->child, symbolTable);
+    printf("\n$FOR%d:\n", n_for_label_cnt);
+    genCondition(np->child->brother, symbolTable, exit_label);
+    printf("\tnop\n");
+    exploreStatsTree(np->child->brother->brother->brother, symbolTable);
+    genExpression(np->child->brother->brother, symbolTable);
+    printf("\tj\t$FOR%d\n\tnop\n\n", n_for_label_cnt);
+
+    printf("%s:\n", exit_label);
+}
+
 void genWhileLoop(Node *np, Symbol *symbolTable)
 {
     int n_while_label_cnt = while_label_cnt++;
@@ -322,6 +538,10 @@ void exploreStatsTree(Node *np, Symbol *symbolTable)
     {
     case Assign_AST:
         genAssignment(np->child, symbolTable);
+        break;
+
+    case For_AST:
+        genForLoop(np->child, symbolTable);
         break;
 
     case While_AST:

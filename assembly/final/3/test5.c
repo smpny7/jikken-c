@@ -1,10 +1,10 @@
-array matrix1[2][2];
-array matrix2[2][2];
-array matrix3[2][2];
-
 define i;
 define j;
 define k;
+
+array matrix1[2][2];
+array matrix2[2][2];
+array matrix3[2][2];
 
 matrix1[0][0] = 1;
 matrix1[0][1] = 2;
