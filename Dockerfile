@@ -28,4 +28,4 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
-RUN echo 'export PATH=$PATH:/home/jikken-c/bin/maps' >> ~/.bash_profile
+RUN echo 'export PATH=$PATH:/home/jikken-c/bin' >> ~/.bash_profile
