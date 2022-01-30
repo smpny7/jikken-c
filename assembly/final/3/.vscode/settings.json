@@ -5,7 +5,10 @@
         "list.h": "c",
         "print_tree_gui.h": "c",
         "generate.h": "c",
-        "type_traits": "c"
+        "type_traits": "c",
+        "stdio.h": "c",
+        "codegen.h": "c",
+        "explore.h": "c"
     },
     "cSpell.words": [
         "yyerror",

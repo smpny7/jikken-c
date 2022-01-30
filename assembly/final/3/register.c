@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ast.h"
+#include "codegen.h"
+#include "explore.h"
 #include "register.h"
 #include "generate.h"
 #include "list.h"
