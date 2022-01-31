@@ -206,7 +206,7 @@ void genArrayElOffset(Node *np, ArrayIndex *ip, Symbol *symbolTable)
 {
     replaceForArrayOffset(np->child, ip);
     genExpression(np->child, symbolTable);
-    printf("\taddi\t$t1, $zero, 4\t# $t1 = 4\n");
+    printf("\tori\t$t1, $zero, 4\t# $t1 = 4\n");
     printf("\tmult\t$v0, $t1\t# $v0 *= 4\n");
     printf("\tmflo\t$v0\n");
     printf("\taddi $v0, $v0, %d\n", getIdentOffset(np, symbolTable));
