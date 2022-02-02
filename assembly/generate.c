@@ -78,7 +78,10 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         {
             for (i = 0; i < MAX_REG; i++)
                 if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
+                {
                     saveReg(i);
+                    break;
+                }
             r1 = getFreeReg(threeAddrTable->r_opd1);
         }
     }
@@ -90,7 +93,10 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         {
             for (i = 0; i < MAX_REG; i++)
                 if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1)
+                {
                     saveReg(i);
+                    break;
+                }
             r1 = getAssignedRegister(threeAddrTable->r_opd1);
         }
     }
@@ -105,7 +111,10 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         {
             for (i = 0; i < MAX_REG; i++)
                 if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
+                {
                     saveReg(i);
+                    break;
+                }
             r2 = getFreeReg(threeAddrTable->r_opd2);
         }
     }
@@ -117,7 +126,10 @@ void genCalc(ThreeAddr *threeAddrTable, NodeType nType, Symbol *symbolTable)
         {
             for (i = 0; i < MAX_REG; i++)
                 if (regState[i] != threeAddrTable->result && regState[i] != threeAddrTable->r_opd1 && regState[i] != threeAddrTable->r_opd2)
+                {
                     saveReg(i);
+                    break;
+                }
             r2 = getAssignedRegister(threeAddrTable->r_opd2);
         }
     }
@@ -185,13 +197,13 @@ void genExpression(Node *np, Symbol *symbolTable)
         case Post_Increment_AST:
             printf("\tlw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
             printf("\taddi\t$v0, $v0, 1\n");
-            printf("\tsw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+            printf("\tsw\t$v0, %d($t0)\n", getIdentOffset(np->child, symbolTable));
             break;
         case Pre_Decrement_AST:
         case Post_Decrement_AST:
             printf("\tlw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
             printf("\taddi\t$v0, $v0, -1\n");
-            printf("\tsw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+            printf("\tsw\t$v0, %d($t0)\n", getIdentOffset(np->child, symbolTable));
             break;
 
         default:
@@ -276,7 +288,7 @@ void genAssignment(Node *np, Symbol *symbolTable)
     {
     case Ident_AST:
         genExpression(np->child->brother, symbolTable);
-        printf("\tsw\t$v0, %d($t0)\n\tnop\n", getIdentOffset(np->child, symbolTable));
+        printf("\tsw\t$v0, %d($t0)\n", getIdentOffset(np->child, symbolTable));
         break;
 
     case ArrayEl_AST:
@@ -285,7 +297,7 @@ void genAssignment(Node *np, Symbol *symbolTable)
         Symbol *sp = getSymbolFromVarName(np->child->varName, symbolTable);
         genArrayElOffset(np->child, sp->index, symbolTable);
         printf("\tadd\t$t1, $t0, $v0\t# $t1 = $t0 + $v0\n");
-        printf("\tsw\t$v1, 0($t1)\n\tnop\n");
+        printf("\tsw\t$v1, 0($t1)\n");
         break;
 
     default:
